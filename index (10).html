@@ -1,0 +1,2248 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dispatch Board — Sistem Inventory &amp; Sales Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --steel-900:#111A24;
+  --steel-800:#1A2531;
+  --steel-700:#27364a;
+  --steel-500:#5b6c80;
+  --paper:#EDF0F3;
+  --card:#ffffff;
+  --line:#D8DEE5;
+  --amber:#F2A100;
+  --amber-dk:#B87A00;
+  --signal:#0E7C86;
+  --alert:#D0342C;
+  --ok:#1E874B;
+  --ink:#16202B;
+  --muted:#6A7A8A;
+  --r:4px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.disp{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:0}
+.mono,.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--signal)}
+::selection{background:var(--amber);color:#111}
+
+/* ---------- shell ---------- */
+.shell{display:flex;min-height:100vh}
+.rail{
+  width:214px;flex:0 0 214px;background:var(--steel-900);color:#B9C6D4;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+}
+.brand{padding:16px 16px 14px;border-bottom:1px solid #24313f}
+.brand .mark{display:flex;align-items:center;gap:9px}
+.brand .chip{width:26px;height:26px;border-radius:3px;background:var(--amber);color:#111A24;display:grid;place-items:center;font-family:"Barlow Condensed";font-weight:700;font-size:16px}
+.brand h1{color:#fff;font-size:17px;line-height:1}
+.brand small{display:block;color:#6E8298;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-top:4px}
+.nav{padding:10px 8px;overflow-y:auto;flex:1}
+.nav .grp{font-size:10px;letter-spacing:.16em;color:#5A6D80;padding:12px 10px 5px;text-transform:uppercase;font-family:"Barlow Condensed";font-weight:600}
+.nav button{
+  width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+  background:none;border:0;color:#B9C6D4;padding:8px 10px;border-radius:var(--r);font-size:13.5px;
+}
+.nav button:hover{background:#1E2A38;color:#fff}
+.nav button.on{background:var(--amber);color:#101822;font-weight:600}
+.nav button .ic{width:18px;text-align:center;opacity:.9}
+.nav button .badge{margin-left:auto;background:var(--alert);color:#fff;font-size:11px;border-radius:20px;padding:0 6px;font-family:"IBM Plex Mono"}
+.nav button.on .badge{background:#101822}
+.railfoot{padding:10px 12px;border-top:1px solid #24313f;font-size:11px;color:#5A6D80}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  background:var(--steel-800);color:#fff;padding:0 18px;height:54px;
+  display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20;
+}
+.topbar .ttl{font-family:"Barlow Condensed";font-size:19px;letter-spacing:.05em;text-transform:uppercase}
+.topbar .sub{color:#8FA1B4;font-size:12px;border-left:1px solid #3A4A5C;padding-left:14px}
+.spacer{flex:1}
+.bell{position:relative;background:#24313f;border:0;color:#fff;width:36px;height:34px;border-radius:var(--r);font-size:16px}
+.bell b{position:absolute;top:-6px;right:-6px;background:var(--alert);font-size:10.5px;border-radius:20px;padding:1px 5px;font-family:"IBM Plex Mono"}
+.me{display:flex;align-items:center;gap:9px;background:#24313f;padding:5px 10px;border-radius:var(--r)}
+.me .av{width:26px;height:26px;border-radius:3px;background:var(--signal);display:grid;place-items:center;font-weight:700;font-size:12px}
+.me .nm{font-size:12.5px;line-height:1.15}
+.me .rl{font-size:10px;color:#8FA1B4;letter-spacing:.1em;text-transform:uppercase}
+.linkbtn{background:none;border:0;color:#8FA1B4;font-size:12px;text-decoration:underline}
+.linkbtn:hover{color:#fff}
+
+.wrap{padding:18px;max-width:1240px;width:100%}
+
+/* ---------- primitives ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.card>.hd{padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card>.hd h3{font-size:15px}
+.card>.bd{padding:14px}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:1000px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}}
+
+.kpi{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--steel-700);border-radius:var(--r);padding:12px 14px}
+.kpi .lb{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:"Barlow Condensed";font-weight:600}
+.kpi .vl{font-family:"IBM Plex Mono";font-size:26px;font-weight:600;line-height:1.25;margin-top:2px}
+.kpi .ft{font-size:11.5px;color:var(--muted)}
+.kpi.amber{border-left-color:var(--amber)} .kpi.alert{border-left-color:var(--alert)} .kpi.ok{border-left-color:var(--ok)} .kpi.sig{border-left-color:var(--signal)}
+
+.btn{background:var(--steel-800);color:#fff;border:1px solid var(--steel-800);padding:7px 13px;border-radius:var(--r);font-size:13px;font-weight:500}
+.btn:hover{background:var(--steel-700)}
+.btn.pri{background:var(--amber);border-color:var(--amber);color:#111A24;font-weight:600}
+.btn.pri:hover{background:#ffb418}
+.btn.gh{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn.gh:hover{background:#F4F7F9}
+.btn.dgr{background:#fff;color:var(--alert);border-color:#EBC3C0}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+label.f{display:block;margin-bottom:11px}
+label.f>span{display:block;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:"Barlow Condensed";font-weight:600}
+input.i,select.i,textarea.i{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+input.i:focus,select.i:focus,textarea.i:focus{outline:2px solid var(--signal);outline-offset:-1px;border-color:var(--signal)}
+input[type=number].i{font-family:"IBM Plex Mono"}
+
+table{width:100%;border-collapse:collapse}
+th{font-family:"Barlow Condensed";font-weight:600;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #EDF1F4;vertical-align:middle}
+tbody tr:hover{background:#F7F9FB}
+td.r,th.r{text-align:right}
+.tw{overflow-x:auto}
+
+.tag{display:inline-block;font-family:"Barlow Condensed";font-weight:600;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border-radius:2px;border:1px solid}
+.t-baru{background:#FFF4DB;border-color:#EBCF8E;color:#8A5B00}
+.t-diproses{background:#E4F0FB;border-color:#A9CCEA;color:#17537F}
+.t-keluar{background:#EAF6EE;border-color:#A8D8BC;color:#166C3D}
+.t-dikirim{background:#EDEAFB;border-color:#BDB4EA;color:#453092}
+.t-selesai{background:#EDF0F3;border-color:#CBD3DB;color:#465768}
+.t-batal{background:#FBEAE8;border-color:#E9BAB5;color:#9C2A22}
+.t-flat{background:#F1F4F7;border-color:var(--line);color:var(--muted)}
+.t-lunas{background:#EAF6EE;border-color:#A8D8BC;color:#166C3D}
+.t-belum{background:#FBEAE8;border-color:#E9BAB5;color:#9C2A22}
+
+.empty{padding:34px 16px;text-align:center;color:var(--muted)}
+.empty .big{font-family:"Barlow Condensed";font-size:17px;color:var(--ink);letter-spacing:.05em;text-transform:uppercase}
+
+/* stepper / signature element */
+.dispatch{display:flex;align-items:stretch;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff}
+.dispatch .st{flex:1;padding:9px 12px;border-right:1px solid var(--line);position:relative;background:#F7F9FB}
+.dispatch .st:last-child{border-right:0}
+.dispatch .st .k{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-family:"Barlow Condensed";font-weight:600}
+.dispatch .st .v{font-family:"IBM Plex Mono";font-size:12.5px;margin-top:2px;color:#9AA8B6}
+.dispatch .st.done{background:#fff}
+.dispatch .st.done .v{color:var(--ink)}
+.dispatch .st.done .k{color:var(--ok)}
+.dispatch .st.now{background:#FFF8E6}
+.dispatch .st.now .k{color:var(--amber-dk)}
+.dispatch .st.now:after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--amber)}
+
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 14px 22px;border-left:1px solid var(--line);margin-left:5px}
+.tl li:last-child{border-left-color:transparent;padding-bottom:0}
+.tl li:before{content:"";position:absolute;left:-5px;top:3px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--line)}
+.tl li.hi:before{background:var(--amber);border-color:var(--amber)}
+.tl .w{font-weight:600;font-size:13px}
+.tl .m{font-size:11.5px;color:var(--muted);font-family:"IBM Plex Mono"}
+
+.notif{position:absolute;right:16px;top:52px;width:340px;background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:0 14px 34px rgba(16,26,36,.2);z-index:60;overflow:hidden}
+.notif .h{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.notif .it{padding:10px 12px;border-bottom:1px solid #EDF1F4;cursor:pointer}
+.notif .it:hover{background:#F7F9FB}
+.notif .it.un{background:#FFFBF0}
+.notif .it .t{font-size:12.8px}
+.notif .it .d{font-size:11px;color:var(--muted);font-family:"IBM Plex Mono";margin-top:2px}
+
+#modalWrap{position:fixed;inset:0;background:rgba(17,26,36,.55);z-index:100;display:grid;place-items:start center;padding:26px 14px;overflow-y:auto}
+.modal{background:#fff;border-radius:var(--r);width:100%;max-width:820px;border:1px solid var(--line)}
+.modal .mh{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.modal .mb{padding:16px;max-height:70vh;overflow:auto}
+.modal .mf{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:#F7F9FB}
+.x{margin-left:auto;background:none;border:0;font-size:20px;color:var(--muted);line-height:1}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center}
+.tst{background:var(--steel-900);color:#fff;padding:9px 16px;border-radius:var(--r);font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);border-left:3px solid var(--amber)}
+.tst.bad{border-left-color:var(--alert)}
+.tst.good{border-left-color:var(--ok)}
+
+/* ---------- login / public ---------- */
+.gate{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr}
+@media(max-width:900px){.gate{grid-template-columns:1fr}.gate .left{display:none}}
+.gate .left{background:var(--steel-900);color:#fff;padding:38px 42px;display:flex;flex-direction:column;justify-content:space-between;gap:26px;
+  background-image:repeating-linear-gradient(135deg,#151F2B 0 22px,#121A24 22px 44px);overflow-y:auto;max-height:100vh}
+.gate .left h2{font-size:37px;line-height:1.02;color:#fff;letter-spacing:.02em}
+.gate .left p{color:#93A5B7;max-width:44ch}
+.gate .left .sub{color:#E3EAF1;font-size:15.5px;max-width:44ch;margin:10px 0 0}
+.gate .left .spirit{border-left:3px solid var(--amber);padding:2px 0 2px 14px;margin:18px 0 0;color:#AFC0D1;font-size:13px;max-width:46ch}
+.quotebox{border:1px solid #2C3B4C;border-radius:var(--r);padding:14px 16px;background:#16202C}
+.quotebox q{quotes:none;display:block;color:#fff;font-size:14.5px;line-height:1.45}
+.chain{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.chain span{font-family:"IBM Plex Mono";font-size:11px;color:#C4D0DC;background:#1E2A38;border:1px solid #2C3B4C;
+  border-radius:2px;padding:4px 9px}
+.chain b{color:var(--amber);font-weight:400;align-self:center}
+.closing{font-family:"Barlow Condensed";font-size:19px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);
+  border-top:1px solid #2C3B4C;padding-top:14px;margin-top:16px}
+.flowlist{list-style:none;padding:0;margin:22px 0 0}
+.flowlist li{display:flex;gap:12px;padding:9px 0;border-top:1px solid #24313f;font-size:13px;color:#C4D0DC}
+.flowlist li b{font-family:"IBM Plex Mono";color:var(--amber);font-size:12px;padding-top:2px}
+.gate .right{padding:42px;display:flex;flex-direction:column;justify-content:center;max-width:560px}
+.tabs{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:18px;background:#fff}
+.tabs button{flex:1;border:0;background:#fff;padding:9px;font-size:13px;color:var(--muted)}
+.tabs button.on{background:var(--steel-800);color:#fff;font-weight:600}
+.userpick{display:grid;gap:6px;max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:var(--r);padding:6px;background:#fff}
+.userpick button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid transparent;background:none;padding:7px 9px;border-radius:var(--r);width:100%}
+.userpick button:hover{background:#F4F7F9}
+.userpick button.on{border-color:var(--amber);background:#FFF8E6}
+.userpick .av{width:28px;height:28px;border-radius:3px;background:var(--steel-700);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.userpick .n{font-size:13px;font-weight:600}
+.userpick .r{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+
+/* ---------- charts & analysis ---------- */
+.chart{width:100%;height:auto;display:block}
+.chart .ax{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:#8A98A7}
+.chart .axb{font-family:"Barlow Condensed",sans-serif;font-size:11px;fill:#5B6C7D;letter-spacing:.06em;text-transform:uppercase}
+.chart rect:hover{opacity:.82}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;padding:5px 13px;font-size:12.5px;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--steel-800);color:#fff;font-weight:600}
+.delta{font-family:"IBM Plex Mono";font-size:12px;font-weight:600}
+.delta.up{color:var(--ok)} .delta.dn{color:var(--alert)} .delta.fl{color:var(--muted)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.mtable td{font-size:13px}
+.mtable td.k{color:var(--muted);width:52%}
+.mtable td.v{text-align:right;font-family:"IBM Plex Mono";font-weight:600}
+.verdict{border:1px solid var(--line);border-left-width:4px;border-radius:var(--r);padding:14px 16px;background:#fff}
+.verdict h3{font-size:19px}
+.verdict.layak{border-left-color:var(--ok);background:#F2FAF5}
+.verdict.hati{border-left-color:var(--amber);background:#FFFBF0}
+.verdict.tidak{border-left-color:var(--alert);background:#FDF4F3}
+.verdict p{margin:6px 0 0;font-size:13px}
+.stackbar{display:flex;height:26px;border-radius:2px;overflow:hidden;border:1px solid var(--line)}
+.stackbar div{display:grid;place-items:center;font-size:10.5px;color:#fff;font-family:"IBM Plex Mono"}
+.hint{font-size:11.5px;color:var(--muted)}
+
+/* ---------- unggah bukti ---------- */
+.drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:16px;text-align:center;background:#F9FBFC;position:relative}
+.drop.wajib{border-color:#E9BAB5;background:#FDF6F5}
+.drop.ada{border-style:solid;border-color:#A8D8BC;background:#F3FAF6;text-align:left;padding:11px}
+.drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop .ic{font-size:22px;color:var(--muted)}
+.drop .t{font-size:13px;font-weight:600;margin-top:4px}
+.buktirow{display:flex;gap:11px;align-items:center}
+.buktithumb{width:52px;height:52px;border-radius:3px;object-fit:cover;border:1px solid var(--line);background:#fff;flex:0 0 52px}
+.buktithumb.pdf{display:grid;place-items:center;font-family:"Barlow Condensed";font-weight:700;font-size:13px;color:var(--alert)}
+.buktibig{max-width:100%;border:1px solid var(--line);border-radius:var(--r)}
+
+/* ---------- setup & sinkronisasi ---------- */
+.setup{min-height:100vh;display:grid;place-items:center;padding:26px 14px;
+  background:var(--steel-900);background-image:repeating-linear-gradient(135deg,#151F2B 0 22px,#121A24 22px 44px)}
+.setupcard{width:100%;max-width:640px}
+.steps{margin:0 0 16px;padding-left:20px}
+.steps li{margin-bottom:12px;font-size:13.5px}
+.codebox{position:relative;margin-top:8px}
+.codebox pre{background:#111A24;color:#C6D3E0;padding:13px 14px;border-radius:var(--r);overflow:auto;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.55;margin:0}
+.codebox .copy{position:absolute;top:8px;right:8px}
+.syncwrap{display:inline-flex;align-items:center;gap:6px;background:#24313f;color:#B9C6D4;
+  padding:5px 10px;border-radius:var(--r);font-size:11.5px;font-family:"IBM Plex Mono"}
+.syncwrap i{width:7px;height:7px;border-radius:50%;display:block}
+
+/* ---------- printed documents ---------- */
+#printArea{display:none}
+.doc{background:#fff;color:#000;font-family:"IBM Plex Sans",sans-serif;font-size:12px}
+.doc .dhead{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px}
+.doc h2{font-size:22px;letter-spacing:.06em}
+.doc .co{font-size:11px;line-height:1.4}
+.doc table{width:100%;border-collapse:collapse;margin:10px 0}
+.doc th,.doc td{border:1px solid #000;padding:5px 7px;font-size:11.5px}
+.doc th{background:#eee;color:#000;text-transform:uppercase;font-size:10.5px}
+.doc .sign{display:flex;gap:40px;margin-top:26px;font-size:11px;text-align:center}
+.doc .sign div{flex:1}
+.doc .sign .ln{margin-top:52px;border-top:1px solid #000;padding-top:3px}
+.doc .kv{font-family:"IBM Plex Mono";font-size:11.5px}
+.label{width:100mm;border:2px solid #000;margin:0 auto;font-family:"IBM Plex Sans",sans-serif;font-size:11px;background:#fff;color:#000}
+.label .lrow{border-bottom:1px solid #000}
+.label .lrow:last-child{border-bottom:0}
+.label .lcour{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#000;color:#fff}
+.label .lbig{font-family:"Barlow Condensed";font-size:24px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.label .lawb{font-family:"IBM Plex Mono";font-size:17px;font-weight:600;letter-spacing:.14em;margin-top:2px}
+.label .lgrid{display:flex}
+.label .lgrid>div{flex:1;padding:8px 10px;font-size:10.5px;line-height:1.4}
+.label .lgrid>div:first-child{border-right:1px solid #000;font-size:11.5px}
+.label .lk{font-family:"Barlow Condensed";font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#444;margin-bottom:2px}
+.label .litem{width:100%;border-collapse:collapse}
+.label .litem td{border-top:1px solid #ccc;padding:4px 10px;font-size:10.5px}
+.label .lfoot{display:flex;justify-content:space-between;padding:5px 10px;font-size:9px;color:#333}
+.label .bars{height:36px;justify-content:center}
+.bars{display:flex;gap:1px;height:44px;align-items:flex-end;margin:8px 0 3px}
+.bars i{display:block;background:#000;height:100%}
+.perf{border-top:1px dashed #000;margin:9px 0}
+.previewbox{background:#5C6B7A;padding:20px;border-radius:var(--r);overflow:auto}
+.previewbox .doc{padding:22px;max-width:780px;margin:0 auto;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.previewbox .label{background:#fff}
+
+@media print{
+  body{background:#fff}
+  .shell,#toast,#modalWrap,.gate{display:none !important}
+  #printArea{display:block !important}
+  #printArea .doc{padding:0}
+  @page{size:A4;margin:14mm}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modalHost"></div>
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+"use strict";
+const DBKEY="dispatch:db:v1";
+let DB=null, ME=null, UI={page:"dashboard", notifOpen:false, filter:{}, draft:null};
+
+/* ============ util ============ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rp=n=>"Rp "+(Math.round(n||0)).toLocaleString("id-ID");
+const nf=n=>(n||0).toLocaleString("id-ID");
+const uid=()=>Math.random().toString(36).slice(2,10);
+const now=()=>new Date().toISOString();
+function fdate(iso,withTime){ if(!iso)return "—"; const d=new Date(iso);
+  const s=d.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"});
+  return withTime? s+" "+d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) : s; }
+function toast(msg,kind){ const t=document.createElement("div"); t.className="tst "+(kind||"");
+  t.textContent=msg; $("#toast").appendChild(t); setTimeout(()=>t.remove(),3200); }
+function seq(key,prefix){ const d=new Date(); const n=(DB.counters[key]=(DB.counters[key]||0)+1);
+  return prefix+"/"+d.getFullYear()+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+String(n).padStart(4,"0"); }
+
+/* ============ backend: Supabase Auth + PostgREST ============ */
+/* Isi bila ingin kredensial ditanam permanen. Kunci anon memang bersifat publik —
+   keamanan sekarang ditegakkan oleh Row Level Security di database, bukan oleh
+   menyembunyikan kunci ini. */
+const BAKED={url:"", key:""};
+/* Site key Cloudflare Turnstile. Kosongkan bila captcha belum diaktifkan di Supabase. */
+const TURNSTILE_SITEKEY="";
+
+const CFGKEY="dispatch:cfg", SESKEY="dispatch:sess";
+let CFG=null, SESS=null, SYNC="idle", LASTSYNC=null, POLLER=null, CAPTCHA=null;
+
+function loadCfg(){
+  if(BAKED.url&&BAKED.key) return {url:BAKED.url,key:BAKED.key};
+  try{ const c=JSON.parse(localStorage.getItem(CFGKEY)||"null"); if(c&&c.url&&c.key) return c; }catch(e){}
+  return null;
+}
+const base=()=>CFG.url.replace(/\/+$/,"");
+function authHeader(){
+  return {apikey:CFG.key, "Content-Type":"application/json",
+    Authorization:"Bearer "+((SESS&&SESS.access_token)||CFG.key)};
+}
+function pesanRapi(status,teks){
+  try{ const j=JSON.parse(teks);
+    if(j.message) return j.message;
+    if(j.error_description) return j.error_description;
+    if(j.msg) return j.msg;
+  }catch(e){}
+  if(status===401||status===403) return "Anda tidak berhak melakukan tindakan ini.";
+  if(status===404) return "Tabel atau fungsi belum dibuat di database.";
+  return "Kesalahan server ("+status+").";
+}
+async function api(path,opt={},ulang){
+  const r=await fetch(base()+path,{...opt,headers:{...authHeader(),...(opt.headers||{})}});
+  if(r.status===401&&!ulang&&SESS&&SESS.refresh_token){
+    if(await perbaruiSesi()) return api(path,opt,true);
+  }
+  if(!r.ok) throw new Error(pesanRapi(r.status, await r.text().catch(()=>"")));
+  if(r.status===204) return null;
+  const t=await r.text().catch(()=>"");          /* balasan kosong itu wajar untuk POST/PATCH */
+  if(!t.trim()) return null;
+  try{ return JSON.parse(t); }catch(e){ return null; }
+}
+const rest=q=>api("/rest/v1/"+q);
+const rpc=(fn,body)=>api("/rest/v1/rpc/"+fn,{method:"POST",body:JSON.stringify(body||{})});
+
+/* --- sesi --- */
+async function masuk(email,password,captcha){
+  const body={email,password};
+  if(captcha) body.gotrue_meta_security={captcha_token:captcha};
+  const r=await fetch(base()+"/auth/v1/token?grant_type=password",{method:"POST",
+    headers:{apikey:CFG.key,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error_description||j.msg||j.message||"Email atau kata sandi salah.");
+  SESS=j; try{ localStorage.setItem(SESKEY,JSON.stringify(j)); }catch(e){}
+}
+async function perbaruiSesi(){
+  try{
+    const r=await fetch(base()+"/auth/v1/token?grant_type=refresh_token",{method:"POST",
+      headers:{apikey:CFG.key,"Content-Type":"application/json"},
+      body:JSON.stringify({refresh_token:SESS.refresh_token})});
+    if(!r.ok) return false;
+    SESS=await r.json(); localStorage.setItem(SESKEY,JSON.stringify(SESS)); return true;
+  }catch(e){ return false; }
+}
+async function keluarSesi(){
+  try{ await fetch(base()+"/auth/v1/logout",{method:"POST",headers:authHeader()}); }catch(e){}
+  SESS=null; ME=null; DB=null; clearInterval(POLLER);
+  try{ localStorage.removeItem(SESKEY); }catch(e){}
+}
+
+/* --- muat seluruh data yang boleh dilihat pengguna ini --- */
+async function loadAll(){
+  const [stores,profiles,products,stock,orders,moves,notifs,settings,customers]=await Promise.all([
+    rest("stores?select=*&order=kode.asc"),
+    rest("profiles?select=*&order=nama.asc"),
+    rest("products?select=*&order=nama.asc"),
+    rest("stock?select=*"),
+    rest("orders?select=*&order=tanggal.desc&limit=800"),
+    rest("stock_moves?select=*&order=ts.desc&limit=800"),
+    rest("notifications?select=*&order=ts.desc&limit=80"),
+    rest("app_settings?select=*"),
+    rest("customers?select=*&order=nama.asc")
+  ]);
+  const uid=SESS.user.id;
+  const st={}; stock.forEach(x=>{ (st[x.product_id]=st[x.product_id]||{})[x.lok]=+x.qty; });
+  const cfg={}; (settings||[]).forEach(r=>cfg[r.id]=r.data);
+  DB={
+    stores:stores.map(s=>({id:s.id,kode:s.kode,nama:s.nama,alamat:s.alamat||"",telp:s.telp||""})),
+    users:profiles.map(u=>({id:u.id,nama:u.nama,role:u.role,storeId:u.store_id,
+      aktif:u.aktif!==false,email:u.email||"",user:u.email||u.nama})),
+    customers:(customers||[]).map(c=>({id:c.id,kode:c.kode,nama:c.nama,tipe:c.tipe,telp:c.telp||"",
+      alamat:c.alamat||"",npwp:c.npwp||"",creditLimit:+c.credit_limit,topDefault:c.top_default,
+      status:c.status,catatan:c.catatan||""})),
+    products:products.map(p=>({id:p.id,sku:p.sku,nama:p.nama,kat:p.kat||"Umum",sat:p.sat||"pcs",
+      beli:+p.beli,jual:+p.jual,bottom:+(p.harga_bottom||0),min:+p.min_stok,pusat:(st[p.id]||{}).HQ||0,
+      toko:Object.fromEntries(stores.map(s=>[s.id,(st[p.id]||{})[s.id]||0]))})),
+    orders:orders.map(o=>({id:o.id,noSO:o.no_so,tanggal:o.tanggal,storeId:o.store_id,sumber:o.sumber,
+      oleh:o.nama_pembuat||"—",cust:o.cust||{nama:"—"},
+      items:(o.items||[]).map(i=>({productId:i.product_id,qty:+i.qty,harga:+i.harga})),
+      sub:+o.sub,ppn:+o.ppn,ongkir:+o.ongkir,total:+o.total,catatan:o.catatan||"",noRef:o.no_ref||"",
+      bukti:o.bukti,jatuhTempo:o.jatuh_tempo,status:o.status,tglApprove:o.tgl_approve,
+      bayarTipe:o.bayar_tipe,topHari:o.top_hari,dpNominal:+(o.dp_nominal||0),tempoBayar:o.tempo_bayar,
+      buktiBayar:o.bukti_bayar||[],tglBayar:o.tgl_bayar,dicekOleh:o.dicek_oleh,tglCek:o.tgl_cek,
+      alasanTolak:o.alasan_tolak,noPR:o.no_pr,tglPR:o.tgl_pr,
+      customerId:o.customer_id,level:o.level||1,alasanLevel:o.alasan_level||[],
+      terbayar:+(o.terbayar||0),disetujuiFinance:o.disetujui_finance,tglFinance:o.tgl_finance,
+      approvedBy:o.approved_by,kurir:o.kurir||"",noAwb:o.no_awb,tglKirim:o.tgl_kirim,
+      ketKirim:o.ket_kirim||"",invoice:o.invoice,log:o.log||[]})),
+    moves:moves.map(m=>({id:m.id,no:m.no,ts:m.ts,tipe:m.tipe,productId:m.product_id,qty:+m.qty,
+      lok:m.lok,oleh:m.oleh,ref:m.ref||"",ket:m.ket||""})),
+    notifs:notifs.map(n=>({id:n.id,to:n.to_role||n.to_store,text:n.teks,orderId:n.order_id,ts:n.ts,
+      read:(n.dibaca||[]).indexOf(uid)>-1})),
+    company:cfg.company||{nama:"Perusahaan Anda",alamat:"",telp:"",email:"",gudang:"Gudang Utama"},
+    feasib:cfg.feasib||null
+  };
+  ME=DB.users.find(u=>u.id===uid)||null;
+  if(!ME) throw new Error("Akun Anda belum diberi peran. Hubungi super admin.");
+  if(!ME.aktif) throw new Error("Akun Anda dinonaktifkan.");
+  setSync("ok");
+}
+
+/* --- pembungkus setiap tindakan yang mengubah data --- */
+async function act(fn,sukses){
+  setSync("saving");
+  try{ await fn(); await loadAll(); render(); if(sukses) toast(sukses,"good"); return true; }
+  catch(e){ setSync("ok"); toast(e.message||"Gagal menyimpan.","bad"); render(); return false; }
+}
+function setSync(s){ SYNC=s; if(s==="ok")LASTSYNC=new Date();
+  const el=$("#syncdot"); if(el) el.outerHTML=syncBadge(); }
+function syncBadge(){
+  const m={ok:["#3FBF74","Tersambung"],saving:["#F2A100","Menyimpan…"],off:["#D0342C","Terputus"],idle:["#8FA1B4","—"]}[SYNC]||["#8FA1B4","—"];
+  return `<span id="syncdot" class="syncwrap"><i style="background:${m[0]}"></i>${m[1]}${LASTSYNC&&SYNC==="ok"?" · "+LASTSYNC.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}):""}</span>`;
+}
+function startPoll(){
+  clearInterval(POLLER);
+  POLLER=setInterval(async()=>{
+    if(document.hidden||$("#modalWrap")||!SESS) return;
+    const a=document.activeElement;
+    if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+    const sebelum=DB?DB.orders.length+"|"+DB.notifs.filter(n=>!n.read).length:"";
+    try{ await loadAll();
+      if(DB.orders.length+"|"+DB.notifs.filter(n=>!n.read).length!==sebelum) render(); else setSync("ok");
+    }catch(e){ setSync("off"); }
+  },20000);
+}
+function persist(){}
+
+const ZH={"Dashboard":"仪表板","Inventory":"库存","Sales Order":"销售订单","Buat Sales Order":"创建销售订单","Approval Pesanan":"订单审批","Data Pengiriman":"发货信息","Barang Masuk / Keluar":"入库 / 出库","Invoice":"发票","Laporan Pengeluaran":"出库报表","Analisis Kelayakan":"可行性分析","Analisis Kelayakan Usaha":"经营可行性分析","Toko & Pengguna":"门店与用户","Toko & Pengguna":"门店与用户","Detail Sales Order":"销售订单详情","Revenue":"营业额","Notifikasi":"通知","Ringkasan operasional hari ini":"今日运营概览","Stok gudang utama & 5 toko":"总仓与5家门店库存","Semua pesanan masuk":"全部进单","Pesanan baru dari toko":"门店新订单","Persetujuan gudang — stok berkurang saat disetujui":"仓库审批 — 批准后库存自动扣减","Mutasi stok manual":"手动库存调整","Input kurir & nomor resi":"录入快递与运单号","Tagihan pelanggan":"客户账单","Barang keluar per toko":"各门店出库","Master data":"主数据","Proyeksi, BEP, dan pengembalian modal":"预测、盈亏平衡与回本","Alur dokumen & pengiriman":"单据与发货流程","Menunggu Approval":"待审批","Disetujui Gudang":"仓库已批准","Sudah Dikirim":"已发货","Selesai":"已完成","Dibatalkan":"已取消","Setujui & kurangi stok":"批准并扣减库存","Setujui pesanan":"批准订单","Tolak":"拒绝","Input kurir & resi":"录入快递与运单号","Simpan & cetak label":"保存并打印面单","Kirim ke gudang & cetak SO":"发送至仓库并打印订单","Cetak SO":"打印订单","Cetak label":"打印面单","Cetak / simpan PDF":"打印 / 保存PDF","PDF / cetak":"PDF / 打印","Cetak PDF sekarang":"立即打印PDF","Lacak di situs kurir":"到快递官网追踪","Lihat bukti pesanan":"查看订单凭证","Bukti pesanan":"订单凭证","Lihat SO":"查看订单","Label kirim":"发货面单","Terbitkan invoice":"开具发票","Tandai lunas":"标记已付款","Tandai diterima":"标记已签收","Batalkan":"取消","Link online":"在线链接","Lihat semua":"查看全部","Buka":"打开","Ubah":"修改","Ganti":"更换","Simpan":"保存","Batal":"取消","Tutup":"关闭","Reset":"重置","Tambah barang":"新增商品","Simpan mutasi":"保存调整","Tandai dibaca":"标为已读","Keluar":"退出","Masuk":"登录","Masuk sebagai staf":"员工登录","Cek invoice (umum)":"发票查询（公开）","Ambil dari data":"从数据获取","Ganti koneksi":"更换连接","Reset ke data contoh":"重置为示例数据","Sambungkan":"连接","Salin":"复制","Sambungkan basis data bersama":"连接共享数据库","Lewati — coba dulu di browser ini":"跳过 — 先在本浏览器试用","Tidak tersambung":"连接失败","Toko pemesan":"下单门店","Ambil stok dari":"库存来源","Nama pelanggan":"客户名称","No. telepon":"电话号码","Alamat kirim":"收货地址","Jatuh tempo (hari)":"账期（天）","Catatan untuk gudang":"给仓库的备注","No. PO / referensi pesanan (opsional)":"采购单号 / 订单参考（选填）","Kurir pengirim":"承运快递","Nomor resi dari kurir / e-commerce":"快递 / 电商平台运单号","Catatan pengiriman (opsional)":"发货备注（选填）","Jenis mutasi":"调整类型","Keterangan":"说明","Kata sandi":"密码","Project URL":"项目地址","Kunci anon public":"anon public 密钥","Nama barang":"商品名称","Harga beli":"进货价","Harga jual":"售价","Stok minimum":"最低库存","Stok gudang utama":"总仓库存","Nama toko":"门店名称","Alamat":"地址","Telepon":"电话","Email":"邮箱","Nama":"名称","Satuan":"单位","Kategori":"类别","Kode":"代码","Investasi awal":"初始投资","Omzet bulan pertama":"首月营业额","Pertumbuhan omzet":"营业额增长","Margin kotor":"毛利率","Biaya tetap per bulan":"每月固定成本","Pajak penghasilan":"所得税","Biaya modal (discount rate)":"资金成本（折现率）","Horizon proyeksi":"预测周期","Hari kerja per bulan":"每月工作日","Barang":"商品","Qty":"数量","Qty diminta":"申请数量","Stok tersedia":"可用库存","Status stok":"库存状态","Status":"状态","Tanggal":"日期","Tanggal kirim":"发货日期","Toko":"门店","Pelanggan":"客户","Total":"合计","Subtotal":"小计","Harga":"单价","Harga satuan":"单价","Jumlah":"金额","Waktu":"时间","No.":"编号","No":"序号","No. SO":"订单号","No. Invoice":"发票号","No. resi":"运单号","Kurir":"快递","Kurir / resi":"快递 / 运单号","Isi pesanan":"订单内容","Isi paket":"包裹内容","Penerima":"收件人","Pengirim":"寄件人","Ref":"参考","Referensi":"参考","Oleh":"操作人","Lokasi":"位置","Min":"最低","Pusat":"总仓","Total stok":"总库存","Total qty":"总数量","Nilai jual":"销售价值","Dikeluarkan oleh":"出库门店","Dikeluarkan / diterima oleh":"出库 / 入库方","Cek fisik":"实物核对","SKU":"商品编码","Periode":"期间","Jatuh tempo":"到期日","Pembayaran":"付款","Email":"邮箱","Tambah pengguna":"新增用户","Tambah toko":"新增门店","Nonaktifkan":"停用","Aktifkan":"启用","Aktif":"启用中","Nonaktif":"已停用","Peran":"角色","Deskripsi":"说明","HPP":"成本","Laba kotor":"毛利","Laba bersih":"净利","Omzet":"营业额","Biaya tetap":"固定成本","Ongkos kirim":"运费","PPN 11%":"增值税 11%","Skenario":"情景","Balok modal":"回本","Balik modal":"回本","NPV":"净现值","IRR":"内部收益率","Gudang Utama":"总仓","Pesanan terbaru":"最新订单","Perlu segera restock":"需尽快补货","Stok barang":"商品库存","Daftar sales order":"销售订单列表","Barang dipesan":"订购商品","Ringkasan":"汇总","Menunggu input pengiriman":"待录入发货信息","Paket sudah diserahkan ke kurir":"已交付快递","Catat mutasi stok":"记录库存调整","Riwayat mutasi":"调整记录","Belum diterbitkan invoice":"尚未开具发票","Invoice terbit":"已开发票","Rincian barang":"商品明细","Informasi":"信息","Riwayat":"记录","Revenue per toko":"各门店营业额","Barang penyumbang omzet terbesar":"营业额贡献最大商品","Rincian pengeluaran":"出库明细","Daftar toko":"门店列表","Pengguna":"用户","Identitas perusahaan":"公司信息","Data prototipe":"原型数据","Koneksi data":"数据连接","Asumsi":"假设条件","Indikator kelayakan":"可行性指标","Proyeksi omzet vs total biaya":"营业额与总成本预测","Arus kas kumulatif":"累计现金流","Struktur biaya bulan pertama":"首月成本结构","Uji sensitivitas omzet":"营业额敏感性测试","Proyeksi laba-rugi ringkas":"简明损益预测","Input kamu":"你的录入","Data kita":"我们的数据","Keputusan lebih cepat":"更快的决策","Bisnis lebih kuat":"更强的业务"};
+let BIL=false;
+const SEL_BIL="nav button, .topbar .ttl, .topbar .sub, th, label.f>span, button, .tag, .kpi .lb, "
+ +".card>.hd h3, .seg button, .tabs button, .empty .big, .mtable td.k, .doc h2, .doc th, .label .lk, .userpick .r";
+function applyBil(root){
+  if(!BIL||!root) return;
+  root.querySelectorAll(SEL_BIL).forEach(el=>{
+    el.childNodes.forEach(n=>{
+      if(n.nodeType!==3) return;
+      const k=n.nodeValue.trim();
+      if(!k||k.length>44||k.indexOf("/")>-1&&ZH[k]===undefined) return;
+      const z=ZH[k]; if(!z) return;
+      n.nodeValue=n.nodeValue.replace(k,k+" / "+z);
+    });
+  });
+}
+function toggleBil(){ BIL=!BIL;
+  try{ localStorage.setItem("dispatch:bil",BIL?"1":"0"); }catch(e){}
+  render(); toast(BIL?"Tampilan dwibahasa aktif / 双语显示已开启":"Kembali ke bahasa Indonesia","good"); }
+
+/* ============ bukti pemesanan ============ */
+const BUCKET="bukti-pesanan", MAXFILE=10*1024*1024;
+function kompresGambar(file){
+  return new Promise((res,rej)=>{
+    if(!file.type.startsWith("image/")) return res(file);
+    const fr=new FileReader(), img=new Image();
+    fr.onerror=()=>rej(new Error("File tidak terbaca."));
+    fr.onload=()=>{ img.src=fr.result; };
+    img.onerror=()=>rej(new Error("File bukan gambar yang valid."));
+    img.onload=()=>{
+      const max=1400; let w=img.width, h=img.height;
+      const sc=Math.min(1,max/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc);
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      c.toBlob(b=>b?res(b):rej(new Error("Gagal memproses gambar.")),"image/jpeg",0.72);
+    };
+    fr.readAsDataURL(file);
+  });
+}
+const blobToDataURL=b=>new Promise((res,rej)=>{const f=new FileReader();
+  f.onload=()=>res(f.result); f.onerror=()=>rej(new Error("Gagal membaca file.")); f.readAsDataURL(b);});
+async function unggahBukti(file){
+  if(file.size>MAXFILE) throw new Error("Ukuran file maksimal 10 MB.");
+  const blob=await kompresGambar(file);
+  const ext=blob.type==="application/pdf"?"pdf":(blob.type==="image/jpeg"?"jpg":(file.name.split(".").pop()||"dat"));
+  const meta={nama:file.name,tipe:blob.type,ukuran:blob.size,ts:now(),oleh:ME?ME.nama:"-"};
+  const path="so/"+Date.now()+"-"+uid().slice(0,6)+"."+ext;
+  const r=await fetch(base()+"/storage/v1/object/"+BUCKET+"/"+path,{method:"POST",
+    headers:{apikey:CFG.key,Authorization:"Bearer "+((SESS&&SESS.access_token)||CFG.key),
+      "Content-Type":blob.type||"application/octet-stream"},body:blob});
+  if(!r.ok){ const t=await r.text().catch(()=>"");
+    throw new Error(r.status===404?"Bucket bukti-pesanan belum dibuat di Supabase.":"Gagal unggah ("+r.status+") "+t.slice(0,120)); }
+  return {...meta,url:base()+"/storage/v1/object/public/"+BUCKET+"/"+path};
+}
+
+/* ============ lookups ============ */
+const store=id=>DB.stores.find(s=>s.id===id)||{nama:"Gudang Utama",kode:"HQ",alamat:DB.company.gudang};
+const prod=id=>DB.products.find(p=>p.id===id);
+const order=id=>DB.orders.find(o=>o.id===id);
+const totalStok=p=>(p.pusat||0)+Object.values(p.toko||{}).reduce((a,b)=>a+(b||0),0);
+const nilaiStok=()=>DB.products.reduce((a,p)=>a+totalStok(p)*p.beli,0);
+function avail(p,src){ return src==="HQ"? (p.pusat||0) : ((p.toko&&p.toko[src])||0); }
+function myStores(){ return (ME.role==="toko"&&ME.storeId)? DB.stores.filter(s=>s.id===ME.storeId) : DB.stores; }
+/* pesanan yang menunggu tindakan admin toko */
+const perluTindakan=()=>visibleOrders().filter(o=>["MENUNGGU_BAYAR","DITOLAK_MANAJER","INVOICE_VALID"].includes(o.status));
+function can(what){
+  const R=ME.role;
+  const map={
+    dashboard:["owner","toko","manajer","finance","gudang","sales"],
+    inventory:["owner","toko","manajer","finance","gudang","sales"],
+    editStok:["owner","gudang"],
+    buatSO:["owner","toko","sales"],
+    orders:["owner","toko","manajer","finance","gudang","sales"],
+    verifikasi:["owner","manajer"],
+    finance:["owner","finance"],
+    pelanggan:["owner","manajer","finance","toko","sales"],
+    kredit:["owner","finance","manajer"],
+    gudang:["owner","gudang"],
+    mutasi:["owner","gudang"],
+    invoice:["owner","sales","toko","manajer","finance"],
+    laporan:["owner","sales","gudang","manajer","finance"],
+    pengaturan:["owner"]
+  };
+  return (map[what]||[]).includes(R);
+}
+function visibleOrders(){
+  let list=DB.orders.slice().sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  if(ME.role==="toko"||(ME.role==="manajer"&&ME.storeId)) list=list.filter(o=>o.storeId===ME.storeId);
+  return list;
+}
+function notifsFor(){
+  return DB.notifs.filter(n=>n.to===ME.role||(ME.role==="toko"&&n.to===ME.storeId)||n.to==="all")
+                  .sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,40);
+}
+function unread(){ return notifsFor().filter(n=>!n.read).length; }
+function pushNotif(to,text,orderId){ DB.notifs.unshift({id:uid(),to,text,orderId,ts:now(),read:false}); }
+
+/* ============ revenue & analitik ============ */
+const ymd=d=>{const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};
+const BLN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+function rpShort(n){const a=Math.abs(n);
+  if(a>=1e9)return "Rp "+(n/1e9).toFixed(1).replace(".",",")+" M";
+  if(a>=1e6)return "Rp "+(n/1e6).toFixed(1).replace(".",",")+" jt";
+  if(a>=1e3)return "Rp "+Math.round(n/1e3)+" rb";
+  return "Rp "+Math.round(n);}
+function periodKey(d,per){const x=new Date(d);
+  if(per==="bulan")return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0");
+  if(per==="minggu"){const t=new Date(x);t.setDate(t.getDate()-((t.getDay()+6)%7));return ymd(t);}
+  return ymd(x);}
+function periodLabel(d,per){const x=new Date(d);
+  if(per==="bulan")return BLN[x.getMonth()]+" "+String(x.getFullYear()).slice(2);
+  if(per==="minggu")return x.getDate()+" "+BLN[x.getMonth()];
+  return x.getDate()+"/"+(x.getMonth()+1);}
+function lastPeriods(per,n){const out=[],base=new Date();
+  for(let i=n-1;i>=0;i--){const d=new Date(base);
+    if(per==="bulan"){d.setDate(1);d.setMonth(base.getMonth()-i);}
+    else if(per==="minggu"){d.setDate(base.getDate()-i*7);d.setDate(d.getDate()-((d.getDay()+6)%7));}
+    else d.setDate(base.getDate()-i);
+    out.push({key:periodKey(d,per),label:periodLabel(d,per),v:0,hpp:0,n:0});}
+  return out;}
+const orderHPP=o=>o.items.reduce((a,it)=>{const p=prod(it.productId);return a+(p?p.beli*it.qty:0)},0);
+function revSeries(per){
+  const n=per==="hari"?30:12, arr=lastPeriods(per,n), map={};
+  arr.forEach(b=>map[b.key]=b);
+  DB.orders.filter(o=>o.status!=="BATAL").forEach(o=>{
+    const b=map[periodKey(o.tanggal,per)]; if(!b)return;
+    b.v+=o.sub; b.hpp+=orderHPP(o); b.n++;});
+  return arr;}
+function revByStore(days){
+  const lim=Date.now()-days*86400000, m={};
+  DB.orders.filter(o=>o.status!=="BATAL"&&new Date(o.tanggal).getTime()>=lim).forEach(o=>{
+    m[o.storeId]=m[o.storeId]||{v:0,laba:0,n:0};
+    m[o.storeId].v+=o.sub; m[o.storeId].laba+=o.sub-orderHPP(o); m[o.storeId].n++;});
+  return DB.stores.map(s=>({s,...(m[s.id]||{v:0,laba:0,n:0})})).sort((a,b)=>b.v-a.v);}
+function topProducts(days,limit){
+  const lim=Date.now()-days*86400000, m={};
+  DB.orders.filter(o=>o.status!=="BATAL"&&new Date(o.tanggal).getTime()>=lim).forEach(o=>o.items.forEach(it=>{
+    m[it.productId]=m[it.productId]||{qty:0,v:0,laba:0};
+    const p=prod(it.productId); m[it.productId].qty+=it.qty; m[it.productId].v+=it.qty*it.harga;
+    m[it.productId].laba+=it.qty*(it.harga-(p?p.beli:0));}));
+  return Object.keys(m).map(id=>({p:prod(id)||{nama:"—",sku:""},...m[id]}))
+    .sort((a,b)=>b.v-a.v).slice(0,limit||6);}
+
+/* --- SVG charts --- */
+function niceMax(v){if(v<=0)return 1;const e=Math.pow(10,Math.floor(Math.log10(v)));const m=v/e;
+  const s=m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10;return s*e;}
+function chartBars(items,color,accent){
+  const W=760,H=250,PL=76,PR=12,PT=14,PB=38, iw=W-PL-PR, ih=H-PT-PB;
+  const max=niceMax(Math.max(1,...items.map(i=>i.v))), bw=iw/Math.max(1,items.length);
+  let g="";
+  for(let i=0;i<=4;i++){const y=PT+ih*i/4,v=max*(1-i/4);
+    g+=`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${W-PR}" y2="${y.toFixed(1)}" stroke="#E5EAEF"/>
+        <text x="${PL-8}" y="${(y+4).toFixed(1)}" text-anchor="end" class="ax">${rpShort(v)}</text>`;}
+  const step=Math.ceil(items.length/13);
+  let b="";
+  items.forEach((it,i)=>{const h=ih*(it.v/max),x=PL+i*bw+bw*0.18,w=bw*0.64,y=PT+ih-h;
+    const last=i===items.length-1;
+    b+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h,it.v>0?1.5:0).toFixed(1)}" fill="${last&&accent?accent:color}" rx="1"><title>${esc(it.label)} — ${rp(it.v)} · ${it.n} order</title></rect>`;
+    if(items.length<=13||i%step===0||last)
+      b+=`<text x="${(PL+i*bw+bw/2).toFixed(1)}" y="${H-PB+16}" text-anchor="middle" class="ax">${esc(it.label)}</text>`;});
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet">${g}${b}</svg>`;}
+function chartLines(labels,series){
+  const W=760,H=260,PL=76,PR=12,PT=14,PB=48, iw=W-PL-PR, ih=H-PT-PB;
+  const max=niceMax(Math.max(1,...series.flatMap(s=>s.vals)));
+  const X=i=>PL+(labels.length<2?iw/2:iw*i/(labels.length-1)), Y=v=>PT+ih-ih*(v/max);
+  let g="";
+  for(let i=0;i<=4;i++){const y=PT+ih*i/4;
+    g+=`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${W-PR}" y2="${y.toFixed(1)}" stroke="#E5EAEF"/>
+        <text x="${PL-8}" y="${(y+4).toFixed(1)}" text-anchor="end" class="ax">${rpShort(max*(1-i/4))}</text>`;}
+  const step=Math.ceil(labels.length/12);
+  labels.forEach((l,i)=>{if(i%step===0||i===labels.length-1)
+    g+=`<text x="${X(i).toFixed(1)}" y="${H-PB+16}" text-anchor="middle" class="ax">${esc(l)}</text>`;});
+  let p="";
+  series.forEach(s=>{const d=s.vals.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
+    if(s.fill) p+=`<path d="${d} L${X(s.vals.length-1).toFixed(1)} ${PT+ih} L${X(0).toFixed(1)} ${PT+ih} Z" fill="${s.color}" opacity=".10"/>`;
+    p+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.dash?1.8:2.4}" ${s.dash?'stroke-dasharray="6 4"':""} stroke-linejoin="round"/>`;});
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet">${g}${p}</svg>
+    <div class="legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>`;}
+function chartCum(vals,labels){
+  const W=760,H=240,PL=76,PR=12,PT=14,PB=38, iw=W-PL-PR, ih=H-PT-PB;
+  const mx=Math.max(...vals,0), mn=Math.min(...vals,0), span=niceMax(Math.max(mx,-mn)||1);
+  const zero=PT+ih*(span/(span*2)), sc=ih/(span*2), bw=iw/vals.length;
+  let g="";
+  for(let i=0;i<=4;i++){const y=PT+ih*i/4,v=span*(1-i/2);
+    g+=`<line x1="${PL}" y1="${y.toFixed(1)}" x2="${W-PR}" y2="${y.toFixed(1)}" stroke="${Math.abs(v)<1e-6?"#9AA8B6":"#E5EAEF"}"/>
+        <text x="${PL-8}" y="${(y+4).toFixed(1)}" text-anchor="end" class="ax">${rpShort(v)}</text>`;}
+  let b="";
+  vals.forEach((v,i)=>{const h=Math.abs(v)*sc,x=PL+i*bw+bw*0.2,w=bw*0.6,y=v>=0?zero-h:zero;
+    b+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${v>=0?"#1E874B":"#D0342C"}" rx="1"><title>${esc(labels[i])}: ${rp(v)}</title></rect>`;
+    if(i%Math.ceil(vals.length/12)===0||i===vals.length-1)
+      b+=`<text x="${(PL+i*bw+bw/2).toFixed(1)}" y="${H-PB+16}" text-anchor="middle" class="ax">${esc(labels[i])}</text>`;});
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet">${g}${b}</svg>`;}
+
+/* --- kelayakan usaha --- */
+function feasibDefaults(){
+  const b=revSeries("bulan").slice(-4,-1);
+  const avg=b.length?b.reduce((a,x)=>a+x.v,0)/b.length:180000000;
+  const hpp=b.length?b.reduce((a,x)=>a+x.hpp,0)/b.length:0;
+  const margin=avg>0?Math.round((1-hpp/avg)*1000)/10:25;
+  return {investasi:Math.round(avg*2.5/1e7)*1e7||450000000, fixed:Math.round(avg*margin/100*0.55/1e6)*1e6||45000000,
+    margin:margin||25, rev0:Math.round(avg/1e6)*1e6||180000000, growth:2,
+    horizon:36, disc:12, pajak:22, hariKerja:26};
+}
+function feasibCalc(f){
+  const dm=Math.pow(1+f.disc/100,1/12)-1, cf=[-f.investasi];
+  const rows=[];
+  let rev=f.rev0;
+  for(let m=0;m<f.horizon;m++){
+    const laba=rev*f.margin/100, ebt=laba-f.fixed, tax=ebt>0?ebt*f.pajak/100:0, net=ebt-tax;
+    rows.push({m,rev,hpp:rev-laba,laba,ebt,net,biaya:(rev-laba)+f.fixed});
+    cf.push(net); rev*=1+f.growth/100;
+  }
+  const npv=cf.reduce((a,c,i)=>a+c/Math.pow(1+dm,i),0);
+  const pv=cf.slice(1).reduce((a,c,i)=>a+c/Math.pow(1+dm,i+1),0);
+  const cum=[]; let s=-f.investasi; cf.slice(1).forEach(c=>{s+=c;cum.push(s)});
+  let payback=null;
+  for(let i=0;i<cum.length;i++) if(cum[i]>=0){const prev=i?cum[i-1]:-f.investasi;
+    payback=i+(prev<0?(-prev)/(cum[i]-prev):0); break;}
+  const npvAt=r=>cf.reduce((a,c,i)=>a+c/Math.pow(1+r,i),0);
+  let irr=null;
+  if(npvAt(0)>0){let lo=0,hi=1;
+    while(npvAt(hi)>0&&hi<10)hi*=2;
+    if(npvAt(hi)<=0){for(let i=0;i<160;i++){const mid=(lo+hi)/2; if(npvAt(mid)>0)lo=mid;else hi=mid;} irr=(lo+hi)/2;}}
+  const irrY=irr==null?null:(Math.pow(1+irr,12)-1)*100;
+  const bepBulan=f.margin>0?f.fixed/(f.margin/100):Infinity;
+  const totalRev=rows.reduce((a,r)=>a+r.rev,0), totalNet=rows.reduce((a,r)=>a+r.net,0);
+  let verdict,vc,alasan;
+  if(npv>0&&irrY!=null&&irrY>f.disc&&payback!=null&&payback<=f.horizon*0.6){verdict="LAYAK DIJALANKAN";vc="layak";
+    alasan="NPV positif, IRR di atas biaya modal, dan modal kembali sebelum "+Math.ceil(f.horizon*0.6)+" bulan.";}
+  else if(npv>0){verdict="LAYAK BERSYARAT";vc="hati";
+    alasan="Proyeksi menguntungkan, tetapi pengembalian modal lambat sehingga sensitif jika omzet meleset.";}
+  else {verdict="BELUM LAYAK";vc="tidak";
+    alasan="Nilai sekarang arus kas lebih kecil dari investasi. Perlu menaikkan omzet, menaikkan margin, atau memangkas biaya tetap.";}
+  return {rows,cum,npv,pv,irrY,payback,bepBulan,bepHari:bepBulan/f.hariKerja,totalRev,totalNet,
+    pi:f.investasi>0?pv/f.investasi:0,roi:f.investasi>0?totalNet/f.investasi*100:0,verdict,vc,alasan,dm};
+}
+
+/* ============ status ============ */
+const STAT={
+  MENUNGGU_BAYAR:{l:"Menunggu Pembayaran",c:"t-belum"},
+  CEK_MANAJER:{l:"Verifikasi Manajer",c:"t-baru"},
+  CEK_FINANCE:{l:"Approval Finance",c:"t-belum"},
+  DITOLAK_MANAJER:{l:"Dikembalikan Manajer",c:"t-batal"},
+  INVOICE_VALID:{l:"Invoice Sah",c:"t-lunas"},
+  PR_GUDANG:{l:"PR di Gudang",c:"t-diproses"},
+  APPROVED:{l:"Disetujui Gudang",c:"t-keluar"},
+  DIKIRIM:{l:"Sudah Dikirim",c:"t-dikirim"}, SELESAI:{l:"Selesai",c:"t-selesai"},
+  BATAL:{l:"Dibatalkan",c:"t-batal"}
+};
+const BAYAR={FULL:"Full Payment",DP:"Down Payment",TEMPO:"Tempo (kredit penuh)"};
+const TIPECUST={CASH:"Tunai",MARKETPLACE:"Marketplace",B2B:"B2B / Reseller"};
+const LEVELINFO={1:{l:"Level 1 — Lolos otomatis",c:"t-lunas"},2:{l:"Level 2 — Approval Manajer",c:"t-baru"},
+  3:{l:"Level 3 — Approval Finance",c:"t-batal"}};
+const badgeLevel=o=>`<span class="tag ${(LEVELINFO[o.level]||{}).c||"t-flat"}">${(LEVELINFO[o.level]||{}).l||("Level "+o.level)}</span>`;
+const sisaTagihan=o=>Math.max(0,(o.total||0)-(o.terbayar||0));
+function kreditCust(cid){
+  const os=DB.orders.filter(o=>o.customerId===cid
+    && !["BATAL","MENUNGGU_BAYAR","DITOLAK_MANAJER"].includes(o.status)
+    && ["DP","TEMPO"].includes(o.bayarTipe) && sisaTagihan(o)>0);
+  const now=Date.now();
+  let piutang=0, overdue=0, hari=0;
+  os.forEach(o=>{ const s=sisaTagihan(o); piutang+=s;
+    if(o.tempoBayar&&new Date(o.tempoBayar).getTime()<now){ overdue+=s;
+      hari=Math.max(hari,Math.floor((now-new Date(o.tempoBayar).getTime())/86400000)); } });
+  return {piutang,overdue,hari,faktur:os.length,list:os};
+}
+const cust=id=>DB.customers.find(c=>c.id===id)||null;
+const sisaTempo=o=>{ if(!o.tempoBayar) return null;
+  return Math.ceil((new Date(o.tempoBayar)-new Date())/86400000); };
+const tag=s=>`<span class="tag ${STAT[s]?STAT[s].c:"t-flat"}">${STAT[s]?STAT[s].l:s}</span>`;
+const ORDER_FLOW=["MENUNGGU_BAYAR","CEK_MANAJER","CEK_FINANCE","INVOICE_VALID","PR_GUDANG","APPROVED","DIKIRIM","SELESAI"];
+
+/* Kurir pihak ketiga. Pelacakan dilakukan di situs kurir masing-masing —
+   sistem ini hanya menyimpan nomor resi yang diinput admin gudang. */
+const KURIR=[
+  {k:"JNE",n:"JNE Express",web:"https://www.jne.co.id/tracking-package"},
+  {k:"JNT",n:"J&T Express",web:"https://www.jet.co.id/track"},
+  {k:"SICEPAT",n:"SiCepat Ekspres",web:"https://www.sicepat.com/checkAwb"},
+  {k:"SPX",n:"Shopee Express (SPX)",web:"https://spx.co.id/track"},
+  {k:"ANTERAJA",n:"Anteraja",web:"https://anteraja.id/tracking"},
+  {k:"NINJA",n:"Ninja Xpress",web:"https://www.ninjaxpress.co/id-id/tracking"},
+  {k:"LION",n:"Lion Parcel",web:"https://lionparcel.com/track"},
+  {k:"POS",n:"POS Indonesia",web:"https://www.posindonesia.co.id/id/tracking"},
+  {k:"IDX",n:"ID Express",web:"https://idexpress.com/tracking"},
+  {k:"INTERNAL",n:"Kurir Internal / Ambil Sendiri",web:""}
+];
+const kurir=k=>KURIR.find(x=>x.k===k)||{k:k||"-",n:k||"—",web:""};
+const totalQty=o=>o.items.reduce((a,i)=>a+i.qty,0);
+
+/* ============ boot ============ */
+function splash(t,sub){ $("#app").innerHTML=`<div class="empty" style="padding-top:90px"><div class="big">${esc(t)}</div><p>${esc(sub||"")}</p></div>`; }
+(async function boot(){
+  splash("Menyambung…");
+  const c=loadCfg();
+  if(!c){ renderSetup(); return; }
+  CFG=c;
+  try{ SESS=JSON.parse(localStorage.getItem(SESKEY)||"null"); }catch(e){ SESS=null; }
+  try{ BIL=localStorage.getItem("dispatch:bil")==="1"; }catch(e){}
+  if(!SESS){ render(); return; }
+  try{ await loadAll(); startPoll(); render(); }
+  catch(e){ SESS=null; try{localStorage.removeItem(SESKEY);}catch(x){} render();
+    if(!/Sesi|401/.test(e.message)) toast(e.message,"bad"); }
+})();
+
+function renderSetup(err){
+  $("#app").innerHTML=`<div class="setup"><div class="setupcard card">
+    <div class="hd"><h3>Sambungkan ke basis data</h3></div>
+    <div class="bd">
+      ${err?`<div class="verdict tidak" style="margin-bottom:14px"><h3>Tidak tersambung</h3><p>${esc(err)}</p></div>`:
+      `<p style="margin-top:0;color:var(--muted)">Masukkan alamat project Supabase perusahaan. Cukup sekali per perangkat.</p>`}
+      <label class="f"><span>Project URL</span><input class="i mono" id="cfgUrl" placeholder="https://xxxxxxxx.supabase.co" value="${esc((loadCfg()||{}).url||"")}"></label>
+      <label class="f"><span>Kunci anon public</span><input class="i mono" id="cfgKey" placeholder="eyJhbGciOi…"></label>
+      <button class="btn pri" onclick="app.connect()">Simpan &amp; lanjut</button>
+      <p class="hint" style="margin-bottom:0">Kunci anon memang bersifat publik. Yang melindungi data adalah login dan aturan akses di database — bukan kerahasiaan kunci ini. Tanpa akun, kunci ini tidak membuka apa pun.</p>
+    </div></div></div>`;
+}
+
+/* ============ render ============ */
+function render(){
+  if(!CFG){ renderSetup(); return; }
+  if(!ME||!DB){ $("#app").innerHTML=gateView(); applyBil($("#app")); pasangCaptcha(); return; }
+  $("#app").innerHTML=`<div class="shell">${rail()}<div class="main">${topbar()}<div class="wrap">${page()}</div></div></div>`
+    + (UI.notifOpen?notifPanel():"");
+  applyBil($("#app"));
+}
+function rail(){
+  const q=DB.orders.filter(o=>o.status==="PR_GUDANG").length;
+  const tugas=(ME.role==="toko"||ME.role==="sales")?perluTindakan().length:0;
+  const item=(p,ic,l,badge)=>`<button class="${UI.page===p?"on":""}" onclick="app.go('${p}')"><span class="ic">${ic}</span>${l}${badge?`<span class="badge">${badge}</span>`:""}</button>`;
+  let nav="";
+  nav+=`<div class="grp">Operasional</div>`;
+  nav+=item("dashboard","▦","Dashboard");
+  if(can("inventory")) nav+=item("inventory","▣","Inventory");
+  if(can("orders")) nav+=item("orders","☰","Sales Order",tugas||0);
+  if(can("buatSO")) nav+=item("so-baru","＋","Buat Sales Order");
+  if(can("pelanggan")) nav+=item("pelanggan","☺","Customer Master");
+  if(can("verifikasi")) nav+=`<div class="grp">Manajer</div>`
+    +item("verifikasi","✔","Pemeriksaan SO",DB.orders.filter(o=>o.status==="CEK_MANAJER").length||0);
+  if(can("finance")) nav+=`<div class="grp">Finance</div>`
+    +item("finance","₪","Approval Level 3",DB.orders.filter(o=>o.status==="CEK_FINANCE").length||0);
+  if(can("kredit")) nav+=item("kredit","◈","Credit Control");
+  if(can("gudang")) nav+=`<div class="grp">Gudang</div>`+item("gudang","⚑","Purchase Request",q||0)
+    +item("pengiriman","✈","Data Pengiriman",DB.orders.filter(o=>o.status==="APPROVED").length||0)
+    +item("mutasi","⇄","Barang Masuk / Keluar");
+  nav+=`<div class="grp">Dokumen</div>`;
+  if(can("invoice")) nav+=item("invoice","▤","Invoice");
+  if(can("laporan")) nav+=item("laporan","◱","Laporan Pengeluaran");
+  if(ME.role==="owner") nav+=item("analisis","◔","Analisis Kelayakan");
+  if(can("pengaturan")) nav+=`<div class="grp">Sistem</div>`+item("pengaturan","⚙","Toko &amp; Pengguna");
+  return `<aside class="rail">
+    <div class="brand"><div class="mark"><span class="chip">D</span><div><h1>Dispatch Board</h1></div></div>
+      <small>${esc(DB.company.nama)}</small></div>
+    <nav class="nav">${nav}</nav>
+    <div class="railfoot">Prototipe · data bersama semua pengguna</div>
+  </aside>`;
+}
+const TITLES={dashboard:["Dashboard","Ringkasan operasional hari ini"],inventory:["Inventory","Stok gudang utama & 5 toko"],
+  orders:["Sales Order","Semua pesanan masuk"],"so-baru":["Buat Sales Order","Pesanan baru dari toko"],
+  gudang:["Purchase Request","Persetujuan gudang — stok berkurang saat disetujui"],
+  verifikasi:["Pemeriksaan SO","Cek keaslian bukti transfer & keakuratan data"],
+  finance:["Approval Level 3","Pesanan berisiko kredit yang perlu keputusan Finance"],
+  pelanggan:["Customer Master","Data pelanggan terpusat lintas toko"],
+  kredit:["Credit Control","Piutang berjalan & tunggakan seluruh toko"],mutasi:["Barang Masuk / Keluar","Mutasi stok manual"],
+  invoice:["Invoice","Tagihan pelanggan"],pengiriman:["Data Pengiriman","Input kurir & nomor resi"],
+  laporan:["Laporan Pengeluaran","Barang keluar per toko"],pengaturan:["Toko & Pengguna","Master data"],
+  analisis:["Analisis Kelayakan Usaha","Proyeksi, BEP, dan pengembalian modal"],
+  detail:["Detail Sales Order","Alur dokumen & pengiriman"]};
+function topbar(){
+  const t=TITLES[UI.page]||["",""], u=unread();
+  return `<div class="topbar">
+    <div class="ttl">${t[0]}</div><div class="sub">${t[1]}</div><div class="spacer"></div>
+    <button class="bell" style="width:auto;padding:0 10px;font-family:'IBM Plex Sans';font-size:11.5px"
+      onclick="app.toggleBil()" title="Tampilkan dwibahasa / 双语显示">${BIL?"ID / 中文":"中文"}</button>
+    ${syncBadge()}
+    <button class="bell" onclick="app.toggleNotif()" title="Notifikasi">🔔${u?`<b>${u}</b>`:""}</button>
+    <div class="me"><div class="av">${esc(ME.nama.slice(0,1))}</div>
+      <div><div class="nm">${esc(ME.nama)}</div><div class="rl">${roleLabel(ME.role)}${ME.storeId?" · "+esc(store(ME.storeId).nama):""}</div></div></div>
+    <button class="linkbtn" onclick="app.logout()">Keluar</button></div>`;
+}
+const roleLabel=r=>({owner:"Super Admin",toko:"Admin Toko",manajer:"Manajer Toko",finance:"Finance",gudang:"Admin Gudang",sales:"Sales Admin"}[r]||r);
+
+function notifPanel(){
+  const list=notifsFor();
+  return `<div class="notif"><div class="h"><h3>Notifikasi</h3><button class="linkbtn" style="margin-left:auto;color:var(--muted)" onclick="app.readAll()">Tandai dibaca</button></div>
+  ${list.length?list.map(n=>`<div class="it ${n.read?"":"un"}" onclick="app.openNotif('${n.id}')"><div class="t">${esc(n.text)}</div><div class="d">${fdate(n.ts,1)}</div></div>`).join(""):`<div class="empty">Belum ada notifikasi.</div>`}
+  </div>`;
+}
+function page(){
+  switch(UI.page){
+    case "dashboard": return pDashboard();
+    case "inventory": return pInventory();
+    case "orders": return pOrders();
+    case "so-baru": return pNewSO();
+    case "gudang": return pGudang();
+    case "mutasi": return pMutasi();
+    case "invoice": return pInvoice();
+    case "pengiriman": return pPengiriman();
+    case "verifikasi": return pVerifikasi();
+    case "finance": return pFinance();
+    case "pelanggan": return pCustomer();
+    case "kredit": return pKredit();
+    case "laporan": return pLaporan();
+    case "pengaturan": return pSettings();
+    case "analisis": return pAnalisis();
+    case "detail": return pDetail(UI.filter.orderId);
+    default: return pDashboard();
+  }
+}
+
+/* ============ pages ============ */
+function pDashboard(){
+  const os=visibleOrders();
+  const baru=os.filter(o=>o.status==="PR_GUDANG").length;
+  const proses=os.filter(o=>o.status==="APPROVED").length;
+  const cek=os.filter(o=>o.status==="CEK_MANAJER").length;
+  const belumBayar2=os.filter(o=>["MENUNGGU_BAYAR","DITOLAK_MANAJER"].includes(o.status)).length;
+  const today=new Date().toISOString().slice(0,10);
+  const keluarHariIni=DB.moves.filter(m=>m.tipe==="KELUAR"&&m.ts.slice(0,10)===today).reduce((a,m)=>a+m.qty,0);
+  const kritis=DB.products.filter(p=>totalStok(p)<=p.min);
+  const belumBayar=os.filter(o=>o.invoice&&o.invoice.status!=="LUNAS").reduce((a,o)=>a+o.total,0);
+  const recent=os.slice(0,7);
+  return `
+  <div class="grid g4" style="margin-bottom:14px">
+    <div class="kpi amber"><div class="lb">Menunggu approval</div><div class="vl num">${baru}</div><div class="ft">${cek} verifikasi manajer · ${belumBayar2} belum bayar</div></div>
+    <div class="kpi sig"><div class="lb">Nilai stok (modal)</div><div class="vl num">${rp(nilaiStok())}</div><div class="ft">${DB.products.length} SKU aktif</div></div>
+    <div class="kpi alert"><div class="lb">Stok kritis</div><div class="vl num">${kritis.length}</div><div class="ft">di bawah stok minimum</div></div>
+    <div class="kpi ok"><div class="lb">Qty keluar hari ini</div><div class="vl num">${nf(keluarHariIni)}</div><div class="ft">${fdate(now())}</div></div>
+  </div>
+  ${ME.role==="owner"?revenueBlock():""}
+  <div class="grid g2">
+    <div class="card"><div class="hd"><h3>Pesanan terbaru</h3><button class="btn gh sm" style="margin-left:auto" onclick="app.go('orders')">Lihat semua</button></div>
+      <div class="tw">${recent.length?`<table><thead><tr><th>No. SO</th><th>Toko</th><th>Pelanggan</th><th class="r">Total</th><th>Status</th></tr></thead><tbody>
+      ${recent.map(o=>`<tr onclick="app.detail('${o.id}')" style="cursor:pointer"><td class="mono">${esc(o.noSO)}</td><td>${esc(store(o.storeId).nama)}</td><td>${esc(o.cust.nama)}</td><td class="r mono">${rp(o.total)}</td><td>${tag(o.status)}</td></tr>`).join("")}
+      </tbody></table>`:`<div class="empty"><div class="big">Belum ada pesanan</div><p>Buat sales order pertama dari menu di kiri.</p></div>`}</div></div>
+    <div class="card"><div class="hd"><h3>Perlu segera restock</h3></div>
+      <div class="tw">${kritis.length?`<table><thead><tr><th>Barang</th><th class="r">Total stok</th><th class="r">Min</th><th class="r">Pusat</th></tr></thead><tbody>
+      ${kritis.slice(0,8).map(p=>`<tr><td><b>${esc(p.nama)}</b><div class="mono" style="font-size:11px;color:var(--muted)">${esc(p.sku)}</div></td>
+      <td class="r mono" style="color:var(--alert);font-weight:600">${nf(totalStok(p))}</td><td class="r mono">${nf(p.min)}</td><td class="r mono">${nf(p.pusat)}</td></tr>`).join("")}
+      </tbody></table>`:`<div class="empty"><div class="big">Stok aman</div><p>Semua barang di atas batas minimum.</p></div>`}</div></div>
+  </div>`;
+}
+
+function revenueBlock(){
+  const per=UI.filter.per||"hari";
+  const ser=revSeries(per);
+  const curr=ser[ser.length-1], prev=ser[ser.length-2]||{v:0};
+  const d=prev.v?((curr.v-prev.v)/prev.v*100):0;
+  const dCls=d>0.5?"up":d<-0.5?"dn":"fl", dTxt=(d>0?"▲ ":d<0?"▼ ":"■ ")+Math.abs(d).toFixed(1)+"%";
+  const win=ser.reduce((a,x)=>a+x.v,0), winHpp=ser.reduce((a,x)=>a+x.hpp,0), winN=ser.reduce((a,x)=>a+x.n,0);
+  const marginPct=win?((win-winHpp)/win*100):0;
+  const nama={hari:"Hari ini",minggu:"Minggu ini",bulan:"Bulan ini"}[per];
+  const sblm={hari:"kemarin",minggu:"minggu lalu",bulan:"bulan lalu"}[per];
+  const rentang={hari:"30 hari terakhir",minggu:"12 minggu terakhir",bulan:"12 bulan terakhir"}[per];
+  const byStore=revByStore(per==="hari"?30:per==="minggu"?84:365);
+  const maxS=Math.max(1,...byStore.map(x=>x.v));
+  const top=topProducts(per==="hari"?30:90,6);
+  const seg=(v,l)=>`<button class="${per===v?"on":""}" onclick="app.setPer('${v}')">${l}</button>`;
+  return `
+  <div class="card" style="margin-bottom:14px">
+    <div class="hd"><h3>Revenue</h3>
+      <span class="hint">${rentang} · di luar PPN &amp; ongkir, pesanan batal tidak dihitung</span>
+      <div class="seg" style="margin-left:auto">${seg("hari","Harian")}${seg("minggu","Mingguan")}${seg("bulan","Bulanan")}</div></div>
+    <div class="bd">
+      <div class="grid g4" style="margin-bottom:16px">
+        <div><div class="lb" style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:'Barlow Condensed';font-weight:600">${nama}</div>
+          <div class="mono" style="font-size:25px;font-weight:600">${rp(curr.v)}</div>
+          <div class="delta ${dCls}">${dTxt} <span style="color:var(--muted);font-weight:400">vs ${sblm} (${rp(prev.v)})</span></div></div>
+        <div><div class="lb" style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:'Barlow Condensed';font-weight:600">Total ${rentang}</div>
+          <div class="mono" style="font-size:25px;font-weight:600">${rp(win)}</div>
+          <div class="hint">${nf(winN)} order</div></div>
+        <div><div class="lb" style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:'Barlow Condensed';font-weight:600">Laba kotor</div>
+          <div class="mono" style="font-size:25px;font-weight:600;color:var(--ok)">${rp(win-winHpp)}</div>
+          <div class="hint">margin ${marginPct.toFixed(1)}% · HPP ${rpShort(winHpp)}</div></div>
+        <div><div class="lb" style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:'Barlow Condensed';font-weight:600">Rata-rata per order</div>
+          <div class="mono" style="font-size:25px;font-weight:600">${rp(winN?win/winN:0)}</div>
+          <div class="hint">${(winN/Math.max(1,ser.length)).toFixed(1)} order per ${per}</div></div>
+      </div>
+      ${chartBars(ser,"#27364a","#F2A100")}
+    </div>
+  </div>
+  <div class="grid g2" style="margin-bottom:14px">
+    <div class="card"><div class="hd"><h3>Revenue per toko</h3><span class="hint" style="margin-left:auto">${per==="hari"?"30 hari":per==="minggu"?"12 minggu":"12 bulan"}</span></div><div class="bd">
+      ${byStore.map((x,i)=>`<div style="margin-bottom:11px">
+        <div class="row" style="justify-content:space-between;margin-bottom:4px">
+          <b>${esc(x.s.nama)}</b><span class="mono" style="font-size:12.5px">${rp(x.v)} · laba ${rpShort(x.laba)}</span></div>
+        <div style="height:9px;background:#EDF1F4;border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${(x.v/maxS*100).toFixed(1)}%;background:${["#F2A100","#0E7C86","#27364a","#5b6c80","#9AA8B6"][i]||"#9AA8B6"}"></div></div>
+        <div class="hint">${x.n} order · kontribusi ${(win?x.v/byStore.reduce((a,y)=>a+y.v,0)*100:0).toFixed(1)}%</div></div>`).join("")}
+    </div></div>
+    <div class="card"><div class="hd"><h3>Barang penyumbang omzet terbesar</h3></div>
+      <div class="tw"><table><thead><tr><th>Barang</th><th class="r">Qty</th><th class="r">Omzet</th><th class="r">Laba kotor</th></tr></thead><tbody>
+      ${top.length?top.map(t=>`<tr><td><b>${esc(t.p.nama)}</b><div class="mono" style="font-size:11px;color:var(--muted)">${esc(t.p.sku)}</div></td>
+        <td class="r mono">${nf(t.qty)}</td><td class="r mono">${rp(t.v)}</td><td class="r mono" style="color:var(--ok)">${rp(t.laba)}</td></tr>`).join("")
+        :`<tr><td colspan="4"><div class="empty">Belum ada penjualan.</div></td></tr>`}
+      </tbody></table></div></div>
+  </div>`;
+}
+
+function pAnalisis(){
+  const f=DB.feasib||feasibDefaults();
+  const c=feasibCalc(f);
+  const labels=c.rows.map(r=>"B"+(r.m+1));
+  const field=(k,l,suf,step)=>`<label class="f"><span>${l}</span>
+    <div class="row" style="flex-wrap:nowrap"><input class="i mono" type="number" step="${step||1}" value="${f[k]}" onchange="app.feasSet('${k}',this.value)">
+    ${suf?`<span class="hint" style="white-space:nowrap">${suf}</span>`:""}</div></label>`;
+  const bepMonth=c.rows.findIndex(r=>r.rev>=c.bepBulan);
+  const strukturBiaya=[{l:"HPP barang",v:c.rows[0].hpp,c:"#27364a"},{l:"Biaya tetap",v:f.fixed,c:"#0E7C86"},
+    {l:"Laba bersih",v:Math.max(0,c.rows[0].net),c:"#1E874B"}];
+  const tb=strukturBiaya.reduce((a,x)=>a+x.v,0)||1;
+  const skenario=[-20,-10,0,10,20].map(p=>{const g={...f,rev0:f.rev0*(1+p/100)};const r=feasibCalc(g);
+    return {p,npv:r.npv,pb:r.payback,irr:r.irrY,v:r.verdict};});
+  return `
+  <div class="verdict ${c.vc}" style="margin-bottom:14px">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><h3>${c.verdict}</h3><p>${esc(c.alasan)}</p></div>
+      <div style="text-align:right"><div class="hint">NPV ${f.horizon} bulan</div>
+        <div class="mono" style="font-size:24px;font-weight:600">${rp(c.npv)}</div></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:320px 1fr;gap:14px">
+    <div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Asumsi</h3>
+        <button class="btn gh sm" style="margin-left:auto" onclick="app.feasReset()">Ambil dari data</button></div><div class="bd">
+        ${field("investasi","Investasi awal","Rp",1000000)}
+        ${field("rev0","Omzet bulan pertama","Rp",1000000)}
+        ${field("growth","Pertumbuhan omzet","% / bulan",0.5)}
+        ${field("margin","Margin kotor","%",0.5)}
+        ${field("fixed","Biaya tetap per bulan","Rp",1000000)}
+        ${field("pajak","Pajak penghasilan","%",1)}
+        ${field("disc","Biaya modal (discount rate)","% / tahun",0.5)}
+        ${field("horizon","Horizon proyeksi","bulan",6)}
+        ${field("hariKerja","Hari kerja per bulan","hari",1)}
+        <p class="hint" style="margin:0">Nilai awal diambil dari rata-rata 3 bulan penjualan nyata di sistem. Ubah sesuai rencana Anda — grafik langsung menyesuaikan.</p>
+      </div></div>
+      <div class="card"><div class="hd"><h3>Indikator kelayakan</h3></div><div class="bd" style="padding:4px 0">
+        <table class="mtable"><tbody>
+        ${[["NPV (nilai sekarang bersih)",rp(c.npv)],
+           ["IRR (per tahun)",c.irrY==null?"—":c.irrY.toFixed(1)+"%"],
+           ["Profitability Index",c.pi.toFixed(2)+"×"],
+           ["Payback period",c.payback==null?"> "+f.horizon+" bulan":c.payback.toFixed(1)+" bulan"],
+           ["ROI total "+f.horizon+" bulan",c.roi.toFixed(0)+"%"],
+           ["BEP omzet per bulan",rp(c.bepBulan)],
+           ["BEP omzet per hari kerja",rp(c.bepHari)],
+           ["Tercapai pada bulan ke-",bepMonth<0?"belum tercapai":bepMonth+1]]
+          .map(r=>`<tr><td class="k">${r[0]}</td><td class="v">${r[1]}</td></tr>`).join("")}
+        </tbody></table></div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Proyeksi omzet vs total biaya</h3>
+        <span class="hint" style="margin-left:auto">titik potong = break even</span></div><div class="bd">
+        ${chartLines(labels,[
+          {name:"Omzet",color:"#0E7C86",vals:c.rows.map(r=>r.rev),fill:true},
+          {name:"Total biaya (HPP + tetap)",color:"#D0342C",vals:c.rows.map(r=>r.biaya)},
+          {name:"BEP omzet",color:"#F2A100",vals:c.rows.map(()=>c.bepBulan),dash:true}])}
+      </div></div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Arus kas kumulatif</h3>
+        <span class="hint" style="margin-left:auto">merah = modal belum kembali</span></div><div class="bd">
+        ${chartCum(c.cum,labels)}
+        <p class="hint" style="margin:8px 0 0">Batang berubah hijau saat akumulasi arus kas melewati nol — itulah titik modal kembali${c.payback!=null?" (bulan ke-"+c.payback.toFixed(1)+")":""}.</p>
+      </div></div>
+      <div class="grid g2">
+        <div class="card"><div class="hd"><h3>Struktur biaya bulan pertama</h3></div><div class="bd">
+          <div class="stackbar">${strukturBiaya.map(x=>`<div style="width:${(x.v/tb*100).toFixed(1)}%;background:${x.c}">${x.v/tb>0.12?(x.v/tb*100).toFixed(0)+"%":""}</div>`).join("")}</div>
+          <div class="legend">${strukturBiaya.map(x=>`<span><i style="background:${x.c}"></i>${x.l} — ${rpShort(x.v)}</span>`).join("")}</div>
+          <p class="hint" style="margin:10px 0 0">Dari setiap ${rpShort(c.rows[0].rev)} omzet bulan pertama.</p>
+        </div></div>
+        <div class="card"><div class="hd"><h3>Uji sensitivitas omzet</h3></div>
+          <div class="tw"><table><thead><tr><th>Skenario</th><th class="r">NPV</th><th class="r">IRR</th><th class="r">Balik modal</th></tr></thead><tbody>
+          ${skenario.map(s=>`<tr style="${s.p===0?"background:#FFF8E6":""}"><td><b>${s.p>0?"+":""}${s.p}%</b>${s.p===0?" <span class='hint'>(dasar)</span>":""}</td>
+            <td class="r mono" style="color:${s.npv>=0?"var(--ok)":"var(--alert)"}">${rpShort(s.npv)}</td>
+            <td class="r mono">${s.irr==null?"—":s.irr.toFixed(0)+"%"}</td>
+            <td class="r mono">${s.pb==null?"> "+f.horizon+" bln":s.pb.toFixed(1)+" bln"}</td></tr>`).join("")}
+          </tbody></table></div>
+          <div class="bd" style="border-top:1px solid var(--line)"><p class="hint" style="margin:0">Menguji apa yang terjadi bila omzet meleset dari rencana. Bila skenario −20% masih positif, rencana relatif tahan guncangan.</p></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px"><div class="hd"><h3>Proyeksi laba-rugi ringkas</h3>
+        <span class="hint" style="margin-left:auto">per 6 bulan</span></div>
+        <div class="tw"><table><thead><tr><th>Periode</th><th class="r">Omzet</th><th class="r">HPP</th><th class="r">Laba kotor</th><th class="r">Biaya tetap</th><th class="r">Laba bersih</th></tr></thead><tbody>
+        ${Array.from({length:Math.ceil(f.horizon/6)},(_,i)=>{const g=c.rows.slice(i*6,i*6+6);
+          const S=k=>g.reduce((a,r)=>a+r[k],0);
+          return `<tr><td><b>Bulan ${i*6+1}–${Math.min(i*6+6,f.horizon)}</b></td>
+            <td class="r mono">${rp(S("rev"))}</td><td class="r mono">${rp(S("hpp"))}</td>
+            <td class="r mono">${rp(S("laba"))}</td><td class="r mono">${rp(f.fixed*g.length)}</td>
+            <td class="r mono" style="color:${S("net")>=0?"var(--ok)":"var(--alert)"};font-weight:600">${rp(S("net"))}</td></tr>`}).join("")}
+        </tbody></table></div>
+        <div class="bd" style="border-top:1px solid var(--line)"><p class="hint" style="margin:0">Model ini menyederhanakan: penyusutan, modal kerja, dan piutang belum dihitung terpisah. Gunakan sebagai alat bantu diskusi, bukan pengganti studi kelayakan formal.</p></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function pInventory(){
+  const q=(UI.filter.q||"").toLowerCase();
+  const list=DB.products.filter(p=>!q||p.nama.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q));
+  const cols=DB.stores;
+  return `<div class="card">
+    <div class="hd"><h3>Stok barang</h3>
+      <input class="i" style="max-width:260px;margin-left:auto" placeholder="Cari nama atau SKU…" value="${esc(UI.filter.q||"")}" oninput="app.setQ(this.value)">
+      ${can("editStok")?`<button class="btn pri" onclick="app.newProduct()">Tambah barang</button>`:""}
+    </div>
+    <div class="tw"><table><thead><tr><th>Barang</th><th>Kategori</th><th class="r">Gudang Utama</th>
+      ${cols.map(s=>`<th class="r">${esc(s.kode)}</th>`).join("")}
+      <th class="r">Total</th><th class="r">Min</th><th class="r">Harga jual</th><th class="r">Bottom</th>${can("editStok")?"<th></th>":""}</tr></thead><tbody>
+    ${!DB.products.length?`<tr><td colspan="${cols.length+8}"><div class="empty"><div class="big">Belum ada barang</div>
+      <p>${can("editStok")?"Klik Tambah barang di kanan atas untuk mulai mengisi master data.":"Menunggu admin gudang mengisi master data."}</p></div></td></tr>`:""}
+    ${list.map(p=>{const t=totalStok(p),low=t<=p.min;return `<tr>
+      <td><b>${esc(p.nama)}</b><div class="mono" style="font-size:11px;color:var(--muted)">${esc(p.sku)} · ${esc(p.sat)}</div></td>
+      <td><span class="tag t-flat">${esc(p.kat)}</span></td>
+      <td class="r mono" style="font-weight:600">${nf(p.pusat)}</td>
+      ${cols.map(s=>`<td class="r mono" style="color:var(--muted)">${nf((p.toko||{})[s.id]||0)}</td>`).join("")}
+      <td class="r mono" style="font-weight:700;${low?"color:var(--alert)":""}">${nf(t)}</td>
+      <td class="r mono" style="color:var(--muted)">${nf(p.min)}</td>
+      <td class="r mono">${rp(p.jual)}</td>
+      <td class="r mono" style="color:var(--muted)">${p.bottom?rp(p.bottom):"—"}</td>
+      ${can("editStok")?`<td class="r"><button class="btn gh sm" onclick="app.editProduct('${p.id}')">Ubah</button></td>`:""}
+    </tr>`}).join("")}
+    </tbody></table>${list.length?"":`<div class="empty"><div class="big">Tidak ditemukan</div><p>Ubah kata kunci pencarian.</p></div>`}</div>
+    <div class="bd" style="border-top:1px solid var(--line);color:var(--muted);font-size:12px">
+      Kolom kode toko: ${cols.map(s=>esc(s.kode)+" = "+esc(s.nama)).join(" · ")}
+    </div></div>`;
+}
+
+function panelTugas(){
+  const t=perluTindakan();
+  if(!t.length||!["toko","sales","owner"].includes(ME.role)) return "";
+  return `<div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
+    <div class="hd"><h3>Perlu tindakan Anda</h3><span class="hint" style="margin-left:auto">${t.length} pesanan</span></div>
+    <div class="tw"><table><thead><tr><th>No. SO</th><th>Pelanggan</th><th>Pembayaran</th><th class="r">Total</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>
+    ${t.map(o=>{const sisa=sisaTempo(o);
+      return `<tr><td class="mono">${esc(o.noSO)}</td><td>${esc(o.cust.nama)}</td>
+      <td style="font-size:12px">${esc(BAYAR[o.bayarTipe]||"—")}
+        ${o.bayarTipe==="DP"&&o.status==="MENUNGGU_BAYAR"&&sisa!==null?`<div class="hint" style="color:${sisa<0?"var(--alert)":sisa<=3?"var(--amber-dk)":"var(--muted)"}">${sisa<0?"lewat tempo "+(-sisa)+" hari":"jatuh tempo "+sisa+" hari lagi"}</div>`:""}</td>
+      <td class="r mono">${rp(o.total)}</td><td>${tag(o.status)}</td>
+      <td><div class="row">
+        ${o.status==="INVOICE_VALID"
+          ? `<button class="btn pri sm" onclick="app.teruskanPR('${o.id}')">Teruskan ke gudang</button>
+             <button class="btn gh sm" onclick="app.printDoc('inv','${o.id}')">Invoice</button>`
+          : `<button class="btn pri sm" onclick="app.formBayar('${o.id}')">Unggah bukti bayar</button>`}
+      </div>${o.status==="DITOLAK_MANAJER"&&o.alasanTolak?`<div class="hint" style="color:var(--alert);margin-top:3px">Ditolak: ${esc(o.alasanTolak)}</div>`:""}</td></tr>`}).join("")}
+    </tbody></table></div></div>`;
+}
+function pOrders(){
+  const f=UI.filter.stat||"", list=visibleOrders().filter(o=>!f||o.status===f);
+  const btn=(v,l)=>`<button class="btn ${f===v?"":"gh"} sm" onclick="app.setStat('${v}')">${l}</button>`;
+  return `${panelTugas()}<div class="card"><div class="hd"><h3>Daftar sales order</h3>
+    <div class="row" style="margin-left:auto">${btn("","Semua")}${ORDER_FLOW.map(s=>btn(s,STAT[s].l)).join("")}</div></div>
+    <div class="tw">${list.length?`<table><thead><tr><th>No. SO</th><th>Tanggal</th><th>Toko</th><th>Pelanggan</th><th>Isi pesanan</th><th class="r">Total</th><th>Status</th><th>Kurir / resi</th><th></th></tr></thead><tbody>
+    ${list.map(o=>`<tr><td class="mono">${esc(o.noSO)}</td><td>${fdate(o.tanggal)}</td><td>${esc(store(o.storeId).nama)}</td>
+      <td>${esc(o.cust.nama)}</td>
+      <td style="font-size:11.5px;max-width:230px">${o.items.slice(0,2).map(it=>esc(((prod(it.productId)||{}).nama||"—").slice(0,26))+" <b>×"+it.qty+"</b>").join("<br>")}${o.items.length>2?`<div style="color:var(--muted)">+${o.items.length-2} barang lain</div>`:""}</td>
+      <td class="r mono">${rp(o.total)}</td><td>${tag(o.status)}</td>
+      <td class="mono" style="font-size:11px">${o.noAwb?esc(kurir(o.kurir).k)+"<div style='color:var(--muted)'>"+esc(o.noAwb)+"</div>":"—"}</td>
+      <td class="r"><button class="btn gh sm" onclick="app.detail('${o.id}')">Buka</button></td></tr>`).join("")}
+    </tbody></table>`:`<div class="empty"><div class="big">Belum ada sales order</div><p>${can("buatSO")?"Gunakan menu Buat Sales Order untuk memulai.":"Menunggu order dari toko."}</p></div>`}</div></div>`;
+}
+
+function pNewSO(){
+  if(!DB.stores.length) return `<div class="card"><div class="empty">
+    <div class="big">Belum ada toko</div><p>Tambahkan minimal satu toko lebih dulu di menu Toko &amp; Pengguna.</p>
+    ${can("pengaturan")?`<button class="btn pri" style="margin-top:10px" onclick="app.go('pengaturan')">Buka Toko &amp; Pengguna</button>`:""}
+  </div></div>`;
+  if(!DB.customers.length) return `<div class="card"><div class="empty">
+    <div class="big">Belum ada pelanggan</div><p>Setiap sales order wajib terhubung ke satu pelanggan di Customer Master.</p>
+    ${can("pelanggan")?`<button class="btn pri" style="margin-top:10px" onclick="app.go('pelanggan')">Buka Customer Master</button>`:""}
+  </div></div>`;
+  if(!DB.products.length) return `<div class="card"><div class="empty">
+    <div class="big">Belum ada barang</div><p>Isi daftar barang beserta stok awalnya lebih dulu di menu Inventory.</p>
+    ${can("editStok")?`<button class="btn pri" style="margin-top:10px" onclick="app.go('inventory')">Buka Inventory</button>`:""}
+  </div></div>`;
+  const d=UI.draft||(UI.draft={storeId:(ME.storeId||DB.stores[0].id),sumber:"HQ",cust:{nama:"",telp:"",alamat:""},
+    items:[{productId:DB.products[0].id,qty:1,harga:DB.products[0].jual}],ongkir:0,catatan:"",noRef:"",bukti:null,
+    customerId:"",alamat:"",bayarTipe:"FULL",topHari:30,dpNominal:0,jatuhTempo:14});
+  const opts=DB.products.map(p=>`<option value="${p.id}">${esc(p.sku)} — ${esc(p.nama)}</option>`).join("");
+  const srcOpts=`<option value="HQ">Gudang Utama</option>`+DB.stores.map(s=>`<option value="${s.id}">Stok ${esc(s.nama)}</option>`).join("");
+  const rows=d.items.map((it,i)=>{const p=prod(it.productId), a=avail(p,d.sumber), kurang=it.qty>a;
+    return `<tr><td><select class="i" onchange="app.itemProd(${i},this.value)">${opts.replace(`value="${it.productId}"`,`value="${it.productId}" selected`)}</select>
+      <div style="font-size:11px;color:${kurang?"var(--alert)":"var(--muted)"};margin-top:3px" class="mono">Tersedia: ${nf(a)} ${esc(p.sat)}${kurang?" · stok kurang":""}</div></td>
+      <td style="width:96px"><input class="i" type="number" min="1" value="${it.qty}" onchange="app.itemQty(${i},this.value)"></td>
+      <td style="width:150px"><input class="i" type="number" value="${it.harga}" onchange="app.itemHarga(${i},this.value)"></td>
+      <td class="r mono" style="width:130px">${rp(it.qty*it.harga)}</td>
+      <td class="r" style="width:44px"><button class="btn dgr sm" onclick="app.delItem(${i})">✕</button></td></tr>`}).join("");
+  const sub=d.items.reduce((a,i)=>a+i.qty*i.harga,0), ppn=Math.round(sub*0.11), tot=sub+ppn+(+d.ongkir||0);
+  return `<div class="grid" style="grid-template-columns:1.6fr .9fr;gap:14px">
+    <div class="card"><div class="hd"><h3>Barang dipesan</h3></div><div class="bd">
+      <div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Toko pemesan</span><select class="i" onchange="app.draftSet('storeId',this.value)" ${ME.role==="toko"?"disabled":""}>
+          ${myStores().map(s=>`<option value="${s.id}" ${d.storeId===s.id?"selected":""}>${esc(s.nama)}</option>`).join("")}</select></label>
+        <label class="f"><span>Ambil stok dari</span><select class="i" onchange="app.draftSet('sumber',this.value)">${srcOpts.replace(`value="${d.sumber}"`,`value="${d.sumber}" selected`)}</select></label>
+      </div>
+      <div class="tw"><table><thead><tr><th>Barang</th><th>Qty</th><th>Harga satuan</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <button class="btn gh sm" style="margin-top:10px" onclick="app.addItem()">+ Tambah baris</button>
+      <label class="f" style="margin-top:14px"><span>Catatan untuk gudang</span><textarea class="i" rows="2" onchange="app.draftSet('catatan',this.value)" placeholder="Contoh: barang dibungkus rangkap, ambil dari rak B3">${esc(d.catatan)}</textarea></label>
+      <div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>No. PO / referensi pesanan (opsional)</span>
+          <input class="i mono" value="${esc(d.noRef||"")}" onchange="app.draftSet('noRef',this.value)" placeholder="PO-2026-0451 / no. pesanan marketplace"></label>
+        <div><span style="display:block;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:'Barlow Condensed';font-weight:600">Bukti pemesanan pelanggan — wajib</span>
+        ${d.bukti?`<div class="drop ada"><div class="buktirow">
+            ${d.bukti.tipe==="application/pdf"?`<div class="buktithumb pdf">PDF</div>`:`<img class="buktithumb" src="${esc(d.bukti.url)}" alt="bukti">`}
+            <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.bukti.nama)}</div>
+              <div class="hint">${Math.round(d.bukti.ukuran/1024)} KB · terunggah</div></div>
+            <button class="btn gh sm" onclick="app.hapusBukti()">Ganti</button></div></div>`
+          :`<div class="drop ${UI.buktiErr?"wajib":""}">
+            <input type="file" accept="image/*,application/pdf" onchange="app.pilihBukti(this)">
+            <div class="ic">${UI.buktiLoad?"⏳":"⬆"}</div>
+            <div class="t">${UI.buktiLoad?"Mengunggah…":"Ketuk untuk unggah bukti"}</div>
+            <div class="hint">Screenshot chat WA, PO pelanggan, atau pesanan marketplace · JPG/PNG/PDF maks 10 MB</div></div>`}
+        </div>
+      </div>
+    </div></div>
+    <div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Pelanggan</h3>
+        <button class="btn gh sm" style="margin-left:auto" onclick="app.editCustomer('')">+ Baru</button></div><div class="bd">
+        <label class="f"><span>Pilih dari Customer Master</span><select class="i" onchange="app.draftSet('customerId',this.value)">
+          <option value="">— pilih pelanggan —</option>
+          ${DB.customers.map(c=>`<option value="${c.id}" ${d.customerId===c.id?"selected":""}>${esc(c.nama)} · ${esc(c.kode)}</option>`).join("")}
+        </select></label>
+        ${cKartu(d.customerId)}
+        <label class="f" style="margin-top:11px"><span>Alamat kirim</span><textarea class="i" rows="3" onchange="app.draftSet('alamat',this.value)" placeholder="Kosongkan untuk memakai alamat pelanggan">${esc(d.alamat||"")}</textarea></label>
+      </div></div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Pembayaran</h3></div><div class="bd">
+        <div class="seg" style="width:100%;margin-bottom:12px">
+          <button style="flex:1" class="${d.bayarTipe==="FULL"?"on":""}" onclick="app.draftSet('bayarTipe','FULL')">Full</button>
+          <button style="flex:1" class="${d.bayarTipe==="DP"?"on":""}" onclick="app.draftSet('bayarTipe','DP')">DP</button>
+          <button style="flex:1" class="${d.bayarTipe==="TEMPO"?"on":""}" onclick="app.draftSet('bayarTipe','TEMPO')">Tempo</button></div>
+        ${d.bayarTipe!=="FULL"?`
+          <div class="grid g2" style="gap:0 12px">
+            <label class="f"><span>Terms of Payment (hari)</span>
+              <input class="i mono" type="number" min="1" value="${d.topHari}" onchange="app.draftSet('topHari',this.value)"></label>
+            ${d.bayarTipe==="DP"?`<label class="f"><span>Nominal DP diterima</span>
+              <input class="i mono" type="number" min="0" value="${d.dpNominal}" onchange="app.draftSet('dpNominal',this.value)"></label>`:"<div></div>"}</div>
+          <p class="hint" style="margin:0">Pelunasan jatuh tempo ${fdate(new Date(Date.now()+(+d.topHari||0)*86400000))}. Bukti pelunasan diunggah setelah pesanan dibuat.</p>`
+        :`<p class="hint" style="margin:0">Bukti pembayaran penuh diunggah setelah pesanan dibuat, sebelum diverifikasi Manajer Toko.</p>`}
+      </div></div>
+      <div class="card"><div class="hd"><h3>Ringkasan</h3></div><div class="bd">
+        <div class="row" style="justify-content:space-between"><span>Subtotal</span><b class="mono">${rp(sub)}</b></div>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span>PPN 11%</span><b class="mono">${rp(ppn)}</b></div>
+        <div class="row" style="justify-content:space-between;margin-top:6px"><span>Ongkos kirim</span>
+          <input class="i mono" style="width:120px;text-align:right" type="number" value="${d.ongkir}" onchange="app.draftSet('ongkir',this.value)"></div>
+        <div class="row" style="justify-content:space-between;border-top:1px solid var(--line);margin-top:10px;padding-top:10px">
+          <b>Total</b><b class="mono" style="font-size:19px">${rp(tot)}</b></div>
+        <button class="btn pri" style="width:100%;margin-top:14px;padding:10px" onclick="app.submitSO()">Simpan sales order</button>
+        <p style="font-size:11.5px;color:var(--muted);margin:9px 0 0">Setelah tersimpan, unggah bukti pembayaran pelanggan. Pesanan baru diteruskan ke Manajer Toko untuk diverifikasi, lalu ke gudang sebagai Purchase Request.</p>
+      </div></div>
+    </div></div>`;
+}
+
+function pGudang(){
+  const antri=DB.orders.filter(o=>o.status==="PR_GUDANG").sort((a,b)=>(a.tglPR||a.tanggal).localeCompare(b.tglPR||b.tanggal));
+  if(!antri.length) return `<div class="card"><div class="empty"><div class="big">Tidak ada Purchase Request</div><p>PR muncul di sini setelah pembayaran diverifikasi Manajer Toko dan diteruskan admin toko.</p></div></div>`;
+  return antri.map(o=>{
+    const kurang=o.items.some(it=>it.qty>avail(prod(it.productId),o.sumber));
+    return `<div class="card" style="margin-bottom:14px">
+    <div class="hd"><h3>${esc(o.noPR||o.noSO)}</h3>${tag(o.status)}
+      <span class="tag t-lunas">${esc(BAYAR[o.bayarTipe]||"—")} · ${esc((o.invoice||{}).no||"")}</span>
+      <span style="color:var(--muted);font-size:12px">${esc(store(o.storeId).nama)} · ${fdate(o.tanggal,1)}</span>
+      <div class="row" style="margin-left:auto">
+        ${o.bukti?`<button class="btn gh" onclick="app.lihatBukti('${o.id}')">Lihat bukti pesanan</button>`:`<span class="tag t-batal">Tanpa bukti</span>`}
+        <button class="btn gh" onclick="app.printDoc('so','${o.id}')">Lihat SO</button>
+        <button class="btn pri" ${kurang?"disabled title='Stok tidak cukup'":""} onclick="app.approve('${o.id}')">Setujui &amp; kurangi stok</button>
+        <button class="btn dgr" onclick="app.batal('${o.id}')">Tolak</button></div></div>
+    <div class="bd">
+      <div class="row" style="gap:22px;margin-bottom:10px;font-size:12.5px">
+        <div><span style="color:var(--muted)">Pelanggan</span> <b>${esc(o.cust.nama)}</b></div>
+        <div><span style="color:var(--muted)">Ambil dari</span> <b>${o.sumber==="HQ"?"Gudang Utama":esc(store(o.sumber).nama)}</b></div>
+        <div><span style="color:var(--muted)">Total barang</span> <b>${nf(totalQty(o))} pcs · ${o.items.length} jenis</b></div>
+        ${o.noRef?`<div><span style="color:var(--muted)">No. PO / referensi</span> <b class="mono">${esc(o.noRef)}</b></div>`:""}
+      </div>
+      <div class="tw"><table><thead><tr><th>Barang</th><th class="r">Qty diminta</th><th class="r">Stok tersedia</th><th>Status stok</th></tr></thead><tbody>
+      ${o.items.map(it=>{const p=prod(it.productId),a=avail(p,o.sumber);return `<tr><td><b>${esc(p.nama)}</b> <span class="mono" style="color:var(--muted);font-size:11px">${esc(p.sku)}</span></td>
+        <td class="r mono">${nf(it.qty)} ${esc(p.sat)}</td><td class="r mono">${nf(a)}</td>
+        <td>${it.qty>a?`<span class="tag t-batal">Kurang ${nf(it.qty-a)}</span>`:`<span class="tag t-lunas">Siap</span>`}</td></tr>`}).join("")}
+      </tbody></table></div>
+      ${o.catatan?`<div style="margin-top:10px;padding:9px 11px;background:#FFF8E6;border-left:3px solid var(--amber);font-size:12.5px"><b>Catatan toko:</b> ${esc(o.catatan)}</div>`:""}
+      <p class="hint" style="margin:10px 0 0">Begitu disetujui, stok langsung berkurang dan pesanan pindah ke menu Data Pengiriman.</p>
+    </div></div>`}).join("");
+}
+
+function kotakBayar(){
+  const b=UI.bayar;
+  if(b) return `<div class="drop ada"><div class="buktirow">
+    ${b.tipe==="application/pdf"?`<div class="buktithumb pdf">PDF</div>`:`<img class="buktithumb" src="${esc(b.url)}" alt="bukti">`}
+    <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600">${esc(b.nama)}</div>
+      <div class="hint">${Math.round(b.ukuran/1024)} KB · terunggah</div></div>
+    <button class="btn gh sm" onclick="app.hapusBuktiBayar()">Ganti</button></div></div>`;
+  return `<div class="drop">
+    <input type="file" accept="image/*,application/pdf" onchange="app.pilihBuktiBayar(this)">
+    <div class="ic">${UI.bayarLoad?"⏳":"⬆"}</div>
+    <div class="t">${UI.bayarLoad?"Mengunggah…":"Ketuk untuk unggah bukti transfer"}</div>
+    <div class="hint">Screenshot mutasi rekening atau struk transfer · JPG/PNG/PDF maks 10 MB</div></div>`;
+}
+function kartuBukti(b,i){
+  if(!b) return "";
+  return `<div class="buktirow" style="margin-bottom:6px">
+    ${b.tipe==="application/pdf"?`<div class="buktithumb pdf">PDF</div>`:`<img class="buktithumb" src="${esc(b.url)}" alt="bukti">`}
+    <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600">${esc(b.nama||("Lampiran "+(i+1)))}</div>
+      <div class="hint">${b.ts?fdate(b.ts,1):""}${b.oleh?" · "+esc(b.oleh):""}</div></div>
+    <a class="btn gh sm" href="${esc(b.url)}" target="_blank" rel="noopener">Buka</a></div>`;
+}
+function cKartu(cid){
+  const c=cust(cid);
+  if(!c) return `<p class="hint" style="margin:0">Pilih pelanggan untuk melihat posisi kreditnya.</p>`;
+  const k=kreditCust(c.id);
+  const lewat=c.creditLimit&&k.piutang>c.creditLimit;
+  return `<div style="background:#F7F9FB;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;font-size:12.5px">
+    <div class="row" style="justify-content:space-between"><b>${esc(c.nama)}</b>
+      <span class="tag ${c.status==="AKTIF"?"t-lunas":c.status==="AWASI"?"t-baru":"t-batal"}">${esc(c.status)}</span></div>
+    <div class="hint">${esc(TIPECUST[c.tipe]||c.tipe)} · ${esc(c.telp||"tanpa telepon")}</div>
+    <div class="row" style="justify-content:space-between;margin-top:6px">
+      <span>Credit limit</span><b class="mono">${c.creditLimit?rp(c.creditLimit):"tanpa limit"}</b></div>
+    <div class="row" style="justify-content:space-between">
+      <span>Piutang berjalan</span><b class="mono" style="${lewat?"color:var(--alert)":""}">${rp(k.piutang)}</b></div>
+    ${k.overdue?`<div class="row" style="justify-content:space-between;color:var(--alert);font-weight:600">
+      <span>Tunggakan</span><b class="mono">${rp(k.overdue)} · ${k.hari} hari</b></div>
+      <div class="hint" style="color:var(--alert);margin-top:4px">Transaksi tunai tetap boleh jalan. Transaksi kredit akan masuk Level 3.</div>`:""}
+  </div>`;
+}
+function pCustomer(){
+  const q=(UI.filter.cq||"").toLowerCase();
+  const list=DB.customers.filter(c=>!q||c.nama.toLowerCase().includes(q)||c.kode.toLowerCase().includes(q));
+  return `<div class="card"><div class="hd"><h3>Customer Master</h3>
+    <span class="hint">satu pelanggan, satu data, dipakai seluruh toko</span>
+    <input class="i" style="max-width:240px;margin-left:auto" placeholder="Cari nama atau kode…" value="${esc(UI.filter.cq||"")}" oninput="app.setCQ(this.value)">
+    <button class="btn pri" onclick="app.editCustomer('')">Tambah pelanggan</button></div>
+    <div class="tw"><table><thead><tr><th>Kode</th><th>Nama</th><th>Tipe</th><th>Kontak</th>
+      <th class="r">Credit limit</th><th class="r">Piutang</th><th class="r">Tunggakan</th><th>Status</th><th></th></tr></thead><tbody>
+    ${list.map(c=>{const k=kreditCust(c.id);
+      return `<tr><td class="mono">${esc(c.kode)}</td>
+      <td><b>${esc(c.nama)}</b>${c.alamat?`<div class="hint">${esc(c.alamat.slice(0,40))}</div>`:""}</td>
+      <td><span class="tag t-flat">${esc(TIPECUST[c.tipe]||c.tipe)}</span></td>
+      <td class="mono" style="font-size:12px">${esc(c.telp||"—")}</td>
+      <td class="r mono">${c.creditLimit?rp(c.creditLimit):"—"}</td>
+      <td class="r mono">${k.piutang?rp(k.piutang):"—"}</td>
+      <td class="r mono" style="${k.overdue?"color:var(--alert);font-weight:600":"color:var(--muted)"}">${k.overdue?rp(k.overdue)+" ("+k.hari+"h)":"—"}</td>
+      <td><span class="tag ${c.status==="AKTIF"?"t-lunas":c.status==="AWASI"?"t-baru":"t-batal"}">${esc(c.status)}</span></td>
+      <td class="r"><button class="btn gh sm" onclick="app.editCustomer('${c.id}')">Ubah</button></td></tr>`}).join("")}
+    ${list.length?"":`<tr><td colspan="9"><div class="empty"><div class="big">Belum ada pelanggan</div>
+      <p>Tambahkan pelanggan lebih dulu — setiap sales order wajib terhubung ke satu pelanggan.</p></div></td></tr>`}
+    </tbody></table></div></div>`;
+}
+
+function pKredit(){
+  const rows=DB.customers.map(c=>({c,k:kreditCust(c.id)})).filter(x=>x.k.piutang>0)
+    .sort((a,b)=>b.k.overdue-a.k.overdue||b.k.piutang-a.k.piutang);
+  const tot=rows.reduce((a,x)=>a+x.k.piutang,0), totOd=rows.reduce((a,x)=>a+x.k.overdue,0);
+  const now=Date.now();
+  const umur=[[0,30,"0–30 hari"],[31,60,"31–60 hari"],[61,90,"61–90 hari"],[91,99999,"di atas 90 hari"]];
+  const ember=umur.map(u=>({l:u[2],v:0}));
+  const perToko={};
+  rows.forEach(x=>x.k.list.forEach(o=>{
+    const h=o.tempoBayar?Math.floor((now-new Date(o.tempoBayar).getTime())/86400000):0;
+    const i=umur.findIndex(u=>h>=u[0]&&h<=u[1]); if(i>-1) ember[i].v+=sisaTagihan(o);
+    perToko[o.storeId]=(perToko[o.storeId]||0)+sisaTagihan(o); }));
+  const maxE=Math.max(1,...ember.map(e=>e.v));
+  return `
+  <div class="grid g4" style="margin-bottom:14px">
+    <div class="kpi sig"><div class="lb">Total piutang berjalan</div><div class="vl num">${rp(tot)}</div>
+      <div class="ft">${rows.length} pelanggan</div></div>
+    <div class="kpi alert"><div class="lb">Tunggakan jatuh tempo</div><div class="vl num">${rp(totOd)}</div>
+      <div class="ft">${tot?(totOd/tot*100).toFixed(0):0}% dari total piutang</div></div>
+    <div class="kpi amber"><div class="lb">Pelanggan menunggak</div><div class="vl num">${rows.filter(x=>x.k.overdue>0).length}</div>
+      <div class="ft">dari ${DB.customers.length} pelanggan</div></div>
+    <div class="kpi ok"><div class="lb">Faktur belum lunas</div><div class="vl num">${rows.reduce((a,x)=>a+x.k.faktur,0)}</div>
+      <div class="ft">lintas seluruh toko</div></div>
+  </div>
+  <div class="grid g2" style="margin-bottom:14px">
+    <div class="card"><div class="hd"><h3>Umur piutang</h3></div><div class="bd">
+      ${ember.map((e,i)=>`<div style="margin-bottom:11px">
+        <div class="row" style="justify-content:space-between;margin-bottom:4px"><b>${e.l}</b><span class="mono">${rp(e.v)}</span></div>
+        <div style="height:9px;background:#EDF1F4;border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${(e.v/maxE*100).toFixed(1)}%;background:${["#1E874B","#F2A100","#D0342C","#8A1F17"][i]}"></div></div>
+      </div>`).join("")}
+      <p class="hint" style="margin:0">Dihitung dari selisih tanggal jatuh tempo dengan hari ini.</p>
+    </div></div>
+    <div class="card"><div class="hd"><h3>Piutang per toko</h3></div><div class="bd">
+      ${DB.stores.map(st=>{const v=perToko[st.id]||0;
+        return `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px solid #F0F3F6">
+          <span>${esc(st.nama)}</span><b class="mono">${v?rp(v):"—"}</b></div>`}).join("")}
+      <p class="hint" style="margin:10px 0 0">Piutang mengikuti toko yang menerbitkan pesanan, tetapi limitnya dihitung per pelanggan lintas toko.</p>
+    </div></div>
+  </div>
+  <div class="card"><div class="hd"><h3>Rincian per pelanggan</h3></div>
+    <div class="tw">${rows.length?`<table><thead><tr><th>Pelanggan</th><th>Tipe</th><th class="r">Limit</th>
+      <th class="r">Piutang</th><th class="r">Tunggakan</th><th class="r">Sisa limit</th><th>Faktur</th></tr></thead><tbody>
+    ${rows.map(x=>`<tr><td><b>${esc(x.c.nama)}</b><div class="mono hint">${esc(x.c.kode)}</div></td>
+      <td><span class="tag t-flat">${esc(TIPECUST[x.c.tipe]||x.c.tipe)}</span></td>
+      <td class="r mono">${x.c.creditLimit?rp(x.c.creditLimit):"—"}</td>
+      <td class="r mono">${rp(x.k.piutang)}</td>
+      <td class="r mono" style="${x.k.overdue?"color:var(--alert);font-weight:600":""}">${x.k.overdue?rp(x.k.overdue)+" · "+x.k.hari+" hari":"—"}</td>
+      <td class="r mono" style="${x.c.creditLimit&&x.k.piutang>x.c.creditLimit?"color:var(--alert)":""}">${x.c.creditLimit?rp(x.c.creditLimit-x.k.piutang):"tanpa limit"}</td>
+      <td style="font-size:12px">${x.k.list.map(o=>`<div><a href="#" onclick="app.detail('${o.id}');return false">${esc(o.noSO)}</a>
+        <span class="mono hint">${rp(sisaTagihan(o))}</span>
+        <button class="btn gh sm" onclick="app.formPelunasan('${o.id}')">Lunasi</button></div>`).join("")}</td></tr>`).join("")}
+    </tbody></table>`:`<div class="empty"><div class="big">Tidak ada piutang berjalan</div>
+      <p>Semua transaksi kredit sudah lunas.</p></div>`}</div></div>`;
+}
+
+function kartuLevel(o){
+  return `<div style="background:${o.level>=3?"#FDF4F3":o.level===2?"#FFF8E6":"#F3FAF6"};
+      border-left:3px solid ${o.level>=3?"var(--alert)":o.level===2?"var(--amber)":"var(--ok)"};
+      padding:10px 12px;font-size:12.5px;border-radius:2px">
+    <b>${(LEVELINFO[o.level]||{}).l||("Level "+o.level)}</b>
+    <ul style="margin:6px 0 0;padding-left:18px">
+      ${(o.alasanLevel||[]).map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`;
+}
+
+function pFinance(){
+  const antri=visibleOrders().filter(o=>o.status==="CEK_FINANCE")
+    .sort((a,b)=>(a.tglCek||a.tanggal).localeCompare(b.tglCek||b.tanggal));
+  if(!antri.length) return `<div class="card"><div class="empty"><div class="big">Tidak ada yang menunggu Finance</div>
+    <p>Pesanan Level 3 yang sudah diperiksa manajer akan muncul di sini.</p></div></div>`;
+  return antri.map(o=>{const c=cust(o.customerId), k=c?kreditCust(c.id):null;
+    return `<div class="card" style="margin-bottom:14px">
+    <div class="hd"><h3>${esc(o.noSO)}</h3>${tag(o.status)}${badgeLevel(o)}
+      <span style="color:var(--muted);font-size:12px">${esc(store(o.storeId).nama)} · diperiksa ${esc(o.dicekOleh||"—")}</span>
+      <div class="row" style="margin-left:auto">
+        <button class="btn dgr" onclick="app.formTolakFinance('${o.id}')">Tolak</button>
+        <button class="btn pri" onclick="app.formSetujuFinance('${o.id}')">Setujui Level 3</button></div></div>
+    <div class="bd"><div class="grid g2" style="gap:14px">
+      <div>${kartuLevel(o)}
+        <div class="tw" style="margin-top:10px"><table><thead><tr><th>Barang</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Price list</th></tr></thead><tbody>
+        ${o.items.map(it=>{const pr=prod(it.productId)||{nama:"—",jual:0,bottom:0};
+          const bawah=pr.bottom&&it.harga<pr.bottom;
+          return `<tr><td>${esc(pr.nama)}</td><td class="r mono">${nf(it.qty)}</td>
+          <td class="r mono" style="${bawah?"color:var(--alert);font-weight:600":""}">${rp(it.harga)}${bawah?"<div class='hint' style='color:var(--alert)'>di bawah bottom "+rp(pr.bottom)+"</div>":""}</td>
+          <td class="r mono" style="color:var(--muted)">${rp(pr.jual)}</td></tr>`}).join("")}
+        <tr><td colspan="3" class="r"><b>Total</b></td><td class="r mono"><b>${rp(o.total)}</b></td></tr>
+        </tbody></table></div></div>
+      <div>
+        <div class="hint" style="margin-bottom:6px">Posisi kredit pelanggan</div>
+        <table class="mtable"><tbody>
+          ${c?[["Pelanggan",c.nama+" ("+c.kode+")"],["Tipe",TIPECUST[c.tipe]||c.tipe],
+             ["Credit limit",c.creditLimit?rp(c.creditLimit):"tanpa limit"],
+             ["Piutang berjalan",rp(k.piutang)],
+             ["Tunggakan",k.overdue?rp(k.overdue)+" · "+k.hari+" hari":"tidak ada"],
+             ["Sisa limit",c.creditLimit?rp(c.creditLimit-k.piutang):"—"],
+             ["Jenis pembayaran",BAYAR[o.bayarTipe]||"—"],
+             ["Jatuh tempo",o.tempoBayar?fdate(o.tempoBayar):"—"]]
+            .map(r=>`<tr><td class="k">${r[0]}</td><td class="v">${esc(r[1])}</td></tr>`).join("")
+            :`<tr><td colspan="2">Pelanggan tidak ditemukan.</td></tr>`}
+        </tbody></table>
+        <div class="hint" style="margin:12px 0 6px">Bukti pembayaran</div>
+        ${(o.buktiBayar||[]).map(kartuBukti).join("")||`<p class="hint">Belum ada — pesanan tempo.</p>`}
+      </div>
+    </div></div></div>`}).join("");
+}
+
+function pVerifikasi(){
+  const antri=visibleOrders().filter(o=>o.status==="CEK_MANAJER")
+    .sort((a,b)=>(a.tglBayar||a.tanggal).localeCompare(b.tglBayar||b.tanggal));
+  if(!antri.length) return `<div class="card"><div class="empty"><div class="big">Tidak ada yang menunggu verifikasi</div>
+    <p>Bukti pembayaran yang diunggah admin toko akan muncul di sini.</p></div></div>`;
+  return antri.map(o=>`<div class="card" style="margin-bottom:14px">
+    <div class="hd"><h3>${esc(o.noSO)}</h3>${tag(o.status)}${badgeLevel(o)}
+      <span class="tag t-flat">${esc(BAYAR[o.bayarTipe]||"—")}${o.bayarTipe!=="FULL"?" · ToP "+o.topHari+" hari":""}</span>
+      <span style="color:var(--muted);font-size:12px">${esc(store(o.storeId).nama)} · dibuat ${esc(o.oleh)}</span>
+      <div class="row" style="margin-left:auto">
+        <button class="btn dgr" onclick="app.formTolak('${o.id}')">Tolak &amp; kembalikan</button>
+        <button class="btn pri" onclick="app.setujuiManajer('${o.id}')">Setujui &amp; terbitkan invoice</button></div></div>
+    <div class="bd">
+      <div class="grid g2" style="gap:14px">
+        <div>
+          ${kartuLevel(o)}
+          <div class="hint" style="margin:12px 0 6px">Data yang perlu dicocokkan</div>
+          <table class="mtable"><tbody>
+            ${[["Pelanggan",o.cust.nama],["Telepon",o.cust.telp||"—"],["No. PO / referensi",o.noRef||"—"],
+               ["Jenis pembayaran",BAYAR[o.bayarTipe]||"—"],
+               ["Nominal DP",o.bayarTipe==="DP"?rp(o.dpNominal):"—"],
+               ["Jatuh tempo pelunasan",o.tempoBayar?fdate(o.tempoBayar):"—"],
+               ["Subtotal",rp(o.sub)],["PPN 11%",rp(o.ppn)],["Ongkos kirim",rp(o.ongkir)]]
+              .map(r=>`<tr><td class="k">${r[0]}</td><td class="v">${esc(r[1])}</td></tr>`).join("")}
+            <tr><td class="k"><b>Total tagihan</b></td><td class="v" style="font-size:15px">${rp(o.total)}</td></tr>
+          </tbody></table>
+          <div class="tw" style="margin-top:8px"><table><thead><tr><th>Barang</th><th class="r">Qty</th><th class="r">Jumlah</th></tr></thead><tbody>
+          ${o.items.map(it=>{const pr=prod(it.productId)||{nama:"—",sat:""};return `<tr><td>${esc(pr.nama)}</td>
+            <td class="r mono">${nf(it.qty)} ${esc(pr.sat)}</td><td class="r mono">${rp(it.qty*it.harga)}</td></tr>`}).join("")}
+          </tbody></table></div>
+        </div>
+        <div>
+          <div class="hint" style="margin-bottom:6px">Bukti pemesanan pelanggan</div>
+          ${kartuBukti(o.bukti,0)}
+          <div class="hint" style="margin:12px 0 6px">Bukti pembayaran — ${o.buktiBayar.length} lampiran</div>
+          ${o.buktiBayar.map(kartuBukti).join("")||`<p class="hint">Belum ada.</p>`}
+          <div style="background:#FFF8E6;border-left:3px solid var(--amber);padding:10px 12px;margin-top:12px;font-size:12.5px">
+            <b>Yang wajib dipastikan:</b> nominal transfer sama dengan total tagihan, nama pengirim sesuai pelanggan,
+            tanggal masuk akal, dan uangnya benar-benar sudah masuk ke rekening perusahaan.</div>
+        </div>
+      </div>
+    </div></div>`).join("");
+}
+
+function pPengiriman(){
+  const siap=DB.orders.filter(o=>o.status==="APPROVED").sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+  const jalan=DB.orders.filter(o=>["DIKIRIM","SELESAI"].includes(o.status)&&o.noAwb)
+    .sort((a,b)=>(b.tglKirim||"").localeCompare(a.tglKirim||"")).slice(0,40);
+  return `
+  <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Menunggu input pengiriman</h3>
+    <span class="hint" style="margin-left:auto">stok sudah berkurang · tinggal dibungkus &amp; diserahkan ke kurir</span></div>
+    ${siap.length?`<div class="tw"><table><thead><tr><th>No. SO</th><th>Toko</th><th>Penerima</th><th>Isi paket</th><th class="r">Total qty</th><th></th></tr></thead><tbody>
+    ${siap.map(o=>`<tr><td class="mono">${esc(o.noSO)}<div style="font-size:11px;color:var(--muted)">${fdate(o.tglApprove||o.tanggal)}</div></td>
+      <td>${esc(store(o.storeId).nama)}</td><td>${esc(o.cust.nama)}<div style="font-size:11px;color:var(--muted)">${esc((o.cust.alamat||"").slice(0,44))}</div></td>
+      <td style="font-size:12px">${o.items.map(it=>esc((prod(it.productId)||{}).nama||"—")+" ×"+it.qty).join("<br>")}</td>
+      <td class="r mono">${nf(totalQty(o))}</td>
+      <td class="r"><button class="btn pri sm" onclick="app.formKirim('${o.id}')">Input kurir &amp; resi</button></td></tr>`).join("")}
+    </tbody></table></div>`:`<div class="empty"><div class="big">Tidak ada paket menunggu</div><p>Pesanan yang sudah disetujui gudang akan muncul di sini.</p></div>`}
+  </div>
+  <div class="card"><div class="hd"><h3>Paket sudah diserahkan ke kurir</h3></div>
+    ${jalan.length?`<div class="tw"><table><thead><tr><th>No. SO</th><th>Kurir</th><th>No. resi</th><th>Penerima</th><th>Tanggal kirim</th><th>Status</th><th></th></tr></thead><tbody>
+    ${jalan.map(o=>`<tr><td class="mono">${esc(o.noSO)}</td><td><b>${esc(kurir(o.kurir).n)}</b></td>
+      <td class="mono">${esc(o.noAwb)}</td><td>${esc(o.cust.nama)}</td><td>${fdate(o.tglKirim)}</td><td>${tag(o.status)}</td>
+      <td class="r"><div class="row" style="justify-content:flex-end">
+        <button class="btn gh sm" onclick="app.lacakKurir('${o.id}')">Lacak di situs kurir</button>
+        <button class="btn gh sm" onclick="app.printDoc('label','${o.id}')">Cetak label</button></div></td></tr>`).join("")}
+    </tbody></table></div>`:`<div class="empty"><div class="big">Belum ada paket dikirim</div></div>`}
+    <div class="bd" style="border-top:1px solid var(--line)"><p class="hint" style="margin:0">Status perjalanan paket tidak disimpan di sistem ini. Tombol lacak menyalin nomor resi lalu membuka situs kurir yang bersangkutan.</p></div>
+  </div>`;
+}
+
+function pMutasi(){
+  const list=DB.moves.slice().sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,60);
+  return `<div class="grid" style="grid-template-columns:1fr 1.5fr;gap:14px">
+    <div class="card" style="align-self:start"><div class="hd"><h3>Catat mutasi stok</h3></div><div class="bd">
+      <label class="f"><span>Jenis mutasi</span><select class="i" id="mvTipe" onchange="app.mvTipeChange()">
+        <option value="MASUK">Barang masuk (pembelian / retur)</option>
+        <option value="KELUAR">Barang keluar (manual)</option>
+        <option value="TRANSFER">Transfer gudang utama → toko</option></select></label>
+      <label class="f"><span>Barang</span><select class="i" id="mvProd">${DB.products.length?DB.products.map(p=>`<option value="${p.id}">${esc(p.sku)} — ${esc(p.nama)}</option>`).join(""):`<option value="">— belum ada barang —</option>`}</select></label>
+      <div class="grid g2" style="gap:0 12px">
+        <label class="f"><span>Qty</span><input class="i" id="mvQty" type="number" min="1" value="1"></label>
+        <label class="f"><span id="mvLokLabel">Lokasi tujuan</span><select class="i" id="mvLok">
+          <option value="HQ">Gudang Utama</option>${DB.stores.map(s=>`<option value="${s.id}">${esc(s.nama)}</option>`).join("")}</select></label>
+      </div>
+      <label class="f"><span>Dikeluarkan / diterima oleh</span><select class="i" id="mvOleh">
+        <option value="HQ">Gudang Utama</option>${DB.stores.map(s=>`<option value="${s.id}">${esc(s.nama)}</option>`).join("")}</select></label>
+      <label class="f"><span>Keterangan</span><input class="i" id="mvKet" placeholder="Contoh: retur pelanggan, barang rusak, kirim ke workshop"></label>
+      <button class="btn pri" style="width:100%" onclick="app.simpanMutasi()">Simpan mutasi</button>
+      <p style="font-size:11.5px;color:var(--muted);margin:9px 0 0">Barang keluar langsung mengurangi stok total; transfer memindahkan stok tanpa mengubah total.</p>
+    </div></div>
+    <div class="card"><div class="hd"><h3>Riwayat mutasi</h3><span style="margin-left:auto;font-size:12px;color:var(--muted)">${DB.moves.length} catatan</span></div>
+      <div class="tw">${list.length?`<table><thead><tr><th>Waktu</th><th>No.</th><th>Barang</th><th class="r">Qty</th><th>Lokasi</th><th>Oleh</th><th>Ref</th></tr></thead><tbody>
+      ${list.map(m=>{const p=prod(m.productId)||{nama:"(dihapus)",sat:""};return `<tr>
+        <td class="mono" style="font-size:11.5px">${fdate(m.ts,1)}</td><td class="mono" style="font-size:11.5px">${esc(m.no)}</td>
+        <td>${esc(p.nama)}</td>
+        <td class="r mono" style="color:${m.tipe==="MASUK"?"var(--ok)":m.tipe==="KELUAR"?"var(--alert)":"var(--muted)"};font-weight:600">${m.tipe==="MASUK"?"+":m.tipe==="KELUAR"?"−":"⇄"}${nf(m.qty)}</td>
+        <td style="font-size:12px">${m.lok==="HQ"?"Gudang Utama":esc(store(m.lok).nama)}</td>
+        <td style="font-size:12px">${m.oleh==="HQ"?"Gudang Utama":esc(store(m.oleh).nama)}</td>
+        <td class="mono" style="font-size:11px;color:var(--muted)">${esc(m.ref||m.ket||"—")}</td></tr>`}).join("")}
+      </tbody></table>`:`<div class="empty"><div class="big">Belum ada mutasi</div><p>Catat barang masuk pertama di panel kiri.</p></div>`}</div></div>
+  </div>`;
+}
+
+function pInvoice(){
+  const list=visibleOrders().filter(o=>o.invoice);
+  const siap=[];
+  return `${siap.length?`<div class="card" style="margin-bottom:14px"><div class="hd"><h3>Belum diterbitkan invoice</h3></div>
+    <div class="tw"><table><thead><tr><th>No. SO</th><th>Pelanggan</th><th>Toko</th><th class="r">Total</th><th>Status</th><th></th></tr></thead><tbody>
+    ${siap.map(o=>`<tr><td class="mono">${esc(o.noSO)}</td><td>${esc(o.cust.nama)}</td><td>${esc(store(o.storeId).nama)}</td>
+      <td class="r mono">${rp(o.total)}</td><td>${tag(o.status)}</td>
+      <td class="r"><button class="btn pri sm" onclick="app.terbitkanInvoice('${o.id}')">Terbitkan invoice</button></td></tr>`).join("")}
+    </tbody></table></div></div>`:""}
+    <div class="card"><div class="hd"><h3>Invoice terbit</h3></div>
+    <div class="tw">${list.length?`<table><thead><tr><th>No. Invoice</th><th>Tanggal</th><th>Pelanggan</th><th class="r">Total</th><th>Jatuh tempo</th><th>Pembayaran</th><th>Cetak / bagikan</th></tr></thead><tbody>
+    ${list.map(o=>`<tr><td class="mono">${esc(o.invoice.no)}</td><td>${fdate(o.invoice.tgl)}</td><td>${esc(o.cust.nama)}<div style="font-size:11px;color:var(--muted)">${esc(o.noSO)}</div></td>
+      <td class="r mono">${rp(o.total)}</td><td class="mono" style="font-size:12px">${fdate(o.invoice.tempo)}</td>
+      <td><span class="tag ${o.invoice.status==="LUNAS"?"t-lunas":"t-belum"}">${o.invoice.status}</span></td>
+      <td><div class="row">
+        <button class="btn gh sm" onclick="app.printDoc('inv','${o.id}')">PDF / cetak</button>
+        <button class="btn gh sm" onclick="app.shareLink('${o.id}')">Link online</button>
+        ${o.invoice.status!=="LUNAS"?`<button class="btn sm" onclick="app.lunas('${o.id}')">Tandai lunas</button>`:""}
+      </div></td></tr>`).join("")}
+    </tbody></table>`:`<div class="empty"><div class="big">Belum ada invoice</div><p>Invoice bisa diterbitkan setelah pesanan diproses gudang.</p></div>`}</div></div>`;
+}
+
+function pLaporan(){
+  const from=UI.filter.from||"", to=UI.filter.to||"";
+  let mv=DB.moves.filter(m=>m.tipe==="KELUAR");
+  if(from) mv=mv.filter(m=>m.ts.slice(0,10)>=from);
+  if(to) mv=mv.filter(m=>m.ts.slice(0,10)<=to);
+  const per={}; mv.forEach(m=>{const k=m.oleh; const p=prod(m.productId)||{beli:0,jual:0};
+    per[k]=per[k]||{qty:0,nilai:0,trx:0}; per[k].qty+=m.qty; per[k].nilai+=m.qty*(p.jual||0); per[k].trx++;});
+  const keys=Object.keys(per).sort((a,b)=>per[b].nilai-per[a].nilai);
+  const nama=k=>k==="HQ"?"Gudang Utama":store(k).nama;
+  const max=Math.max(1,...keys.map(k=>per[k].nilai));
+  return `<div class="card" style="margin-bottom:14px"><div class="hd"><h3>Barang keluar per toko</h3>
+    <div class="row" style="margin-left:auto">
+      <input class="i" type="date" style="width:150px" value="${from}" onchange="app.setRange('from',this.value)">
+      <span style="color:var(--muted)">→</span>
+      <input class="i" type="date" style="width:150px" value="${to}" onchange="app.setRange('to',this.value)">
+      <button class="btn gh sm" onclick="app.setRange('reset','')">Reset</button></div></div>
+    <div class="bd">${keys.length?keys.map(k=>`
+      <div style="margin-bottom:12px">
+        <div class="row" style="justify-content:space-between;margin-bottom:4px">
+          <b>${esc(nama(k))}</b><span class="mono">${rp(per[k].nilai)} · ${nf(per[k].qty)} pcs · ${per[k].trx} transaksi</span></div>
+        <div style="height:9px;background:#EDF1F4;border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${(per[k].nilai/max*100).toFixed(1)}%;background:${k==="s1"?"var(--amber)":k==="s2"?"var(--signal)":"var(--steel-700)"}"></div></div>
+      </div>`).join(""):`<div class="empty"><div class="big">Belum ada barang keluar</div><p>Konfirmasi pengeluaran barang di antrian gudang dulu.</p></div>`}
+    </div></div>
+    <div class="card"><div class="hd"><h3>Rincian pengeluaran</h3><span style="margin-left:auto;font-size:12px;color:var(--muted)">${mv.length} baris</span></div>
+    <div class="tw"><table><thead><tr><th>Waktu</th><th>Dikeluarkan oleh</th><th>Barang</th><th class="r">Qty</th><th class="r">Nilai jual</th><th>Referensi</th></tr></thead><tbody>
+    ${mv.slice().sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,80).map(m=>{const p=prod(m.productId)||{nama:"—",jual:0};
+      return `<tr><td class="mono" style="font-size:11.5px">${fdate(m.ts,1)}</td><td><b>${esc(nama(m.oleh))}</b></td><td>${esc(p.nama)}</td>
+      <td class="r mono">${nf(m.qty)}</td><td class="r mono">${rp(m.qty*p.jual)}</td>
+      <td class="mono" style="font-size:11px;color:var(--muted)">${esc(m.ref||m.ket||"manual")}</td></tr>`}).join("")}
+    </tbody></table></div></div>`;
+}
+
+function pSettings(){
+  const aktif=u=>u.aktif!==false;
+  return `<div class="grid g2">
+    <div class="card"><div class="hd"><h3>Daftar toko</h3>
+      <button class="btn pri sm" style="margin-left:auto" onclick="app.editStore('')">Tambah toko</button></div>
+      <div class="tw"><table><thead><tr><th>Kode</th><th>Nama toko</th><th>Alamat</th><th>Telepon</th><th></th></tr></thead><tbody>
+      ${DB.stores.map(st=>`<tr><td class="mono"><b>${esc(st.kode)}</b></td><td><b>${esc(st.nama)}</b></td>
+        <td style="font-size:12px;color:var(--muted)">${esc(st.alamat||"—")}</td>
+        <td class="mono" style="font-size:12px">${esc(st.telp||"—")}</td>
+        <td class="r"><button class="btn gh sm" onclick="app.editStore('${st.id}')">Ubah</button></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="bd" style="border-top:1px solid var(--line)"><p class="hint" style="margin:0">Kode toko tercetak di label pengiriman dan kolom stok. Alamat dipakai sebagai data pengirim pada paket.</p></div>
+    </div>
+    <div class="card"><div class="hd"><h3>Pengguna</h3>
+      <button class="btn pri sm" style="margin-left:auto" onclick="app.editUser('')">Tambah pengguna</button></div>
+      <div class="tw"><table><thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th>Toko</th><th>Status</th><th></th></tr></thead><tbody>
+      ${DB.users.map(u=>`<tr style="${aktif(u)?"":"opacity:.55"}"><td><b>${esc(u.nama)}</b></td>
+        <td class="mono" style="font-size:12px">${esc(u.email||"—")}</td>
+        <td><span class="tag t-flat">${roleLabel(u.role)}</span></td>
+        <td style="font-size:12px">${u.storeId?esc(store(u.storeId).nama):"—"}</td>
+        <td><span class="tag ${aktif(u)?"t-lunas":"t-batal"}">${aktif(u)?"Aktif":"Nonaktif"}</span></td>
+        <td class="r"><div class="row" style="justify-content:flex-end">
+          <button class="btn gh sm" onclick="app.editUser('${u.id}')">Ubah</button>
+          ${u.id===ME.id?"":`<button class="btn ${aktif(u)?"dgr":"gh"} sm" onclick="app.toggleUser('${u.id}')">${aktif(u)?"Nonaktifkan":"Aktifkan"}</button>`}
+        </div></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="bd" style="border-top:1px solid var(--line)"><p class="hint" style="margin:0">Pengguna nonaktif tidak muncul di layar masuk, tetapi riwayat pekerjaannya tetap tersimpan. Akun Anda sendiri tidak bisa dinonaktifkan.</p></div>
+    </div>
+  </div>`;
+}
+
+function pDetail(id){
+  const o=order(id); if(!o) return `<div class="card"><div class="empty"><div class="big">Pesanan tidak ditemukan</div></div></div>`;
+  const c=cust(o.customerId);
+  const steps=[["SO dibuat",o.noSO,o.tanggal],
+    ["Bukti bayar",o.buktiBayar&&o.buktiBayar.length?o.buktiBayar.length+" lampiran":"",o.tglBayar],
+    ["Verifikasi manajer",o.dicekOleh||"",o.tglCek],
+    ["Approval Finance",o.level>=3?(o.disetujuiFinance||""):"—",o.tglFinance],
+    ["Invoice sah",o.invoice?o.invoice.no:"",o.invoice?o.invoice.tgl:null],
+    ["Purchase Request",o.noPR||"",o.tglPR],
+    ["Disetujui gudang",o.approvedBy||"",o.tglApprove],
+    ["Diserahkan ke kurir",o.noAwb?kurir(o.kurir).n+" · "+o.noAwb:"",o.tglKirim]];
+  const idx=ORDER_FLOW.indexOf(o.status);
+  return `<div class="row" style="margin-bottom:12px"><button class="btn gh sm" onclick="app.go('orders')">← Semua pesanan</button>
+    <div style="font-family:'IBM Plex Mono';font-size:17px;font-weight:600">${esc(o.noSO)}</div>${tag(o.status)}
+    <div class="row" style="margin-left:auto">
+      <button class="btn gh sm" onclick="app.printDoc('so','${o.id}')">Cetak SO</button>
+      ${o.bukti?`<button class="btn gh sm" onclick="app.lihatBukti('${o.id}')">Bukti pesanan</button>`:""}
+      ${o.buktiBayar&&o.buktiBayar.length?`<button class="btn gh sm" onclick="app.lihatBuktiBayar('${o.id}')">Bukti bayar (${o.buktiBayar.length})</button>`:""}
+      ${o.noAwb?`<button class="btn gh sm" onclick="app.printDoc('label','${o.id}')">Label kirim</button>
+        <button class="btn gh sm" onclick="app.lacakKurir('${o.id}')">Lacak di situs kurir</button>`:""}
+      ${o.invoice?`<button class="btn gh sm" onclick="app.printDoc('inv','${o.id}')">Invoice</button>`:""}
+      ${["MENUNGGU_BAYAR","DITOLAK_MANAJER"].includes(o.status)&&can("buatSO")?`<button class="btn pri sm" onclick="app.formBayar('${o.id}')">Unggah bukti bayar</button>`:""}
+      ${o.status==="CEK_MANAJER"&&can("verifikasi")?`<button class="btn pri sm" onclick="app.setujuiManajer('${o.id}')">${o.level>=3?"Teruskan ke Finance":"Setujui"}</button>
+        <button class="btn dgr sm" onclick="app.formTolak('${o.id}')">Tolak</button>`:""}
+      ${o.status==="CEK_FINANCE"&&can("finance")?`<button class="btn pri sm" onclick="app.formSetujuFinance('${o.id}')">Setujui Level 3</button>
+        <button class="btn dgr sm" onclick="app.formTolakFinance('${o.id}')">Tolak</button>`:""}
+      ${sisaTagihan(o)>0&&o.invoice&&can("invoice")?`<button class="btn sm" onclick="app.formPelunasan('${o.id}')">Catat pelunasan</button>`:""}
+      ${o.status==="INVOICE_VALID"&&can("buatSO")?`<button class="btn pri sm" onclick="app.teruskanPR('${o.id}')">Teruskan ke gudang</button>`:""}
+      ${o.status==="PR_GUDANG"&&can("gudang")?`<button class="btn pri sm" onclick="app.approve('${o.id}')">Setujui PR</button>`:""}
+      ${o.status==="APPROVED"&&can("gudang")?`<button class="btn pri sm" onclick="app.formKirim('${o.id}')">Input kurir &amp; resi</button>`:""}
+      ${o.status==="DIKIRIM"?`<button class="btn pri sm" onclick="app.selesai('${o.id}')">Tandai diterima</button>`:""}
+      ${!["DIKIRIM","SELESAI","BATAL"].includes(o.status)&&(can("gudang")||can("verifikasi"))?`<button class="btn dgr sm" onclick="app.batal('${o.id}')">Batalkan</button>`:""}
+    </div></div>
+  <div style="margin-bottom:12px">${kartuLevel(o)}</div>
+  <div class="dispatch" style="margin-bottom:14px">${steps.map((s,i)=>`<div class="st ${s[1]?"done":""} ${i===Math.min(idx,4)&&!s[1]?"now":""}">
+    <div class="k">${s[0]}</div><div class="v">${s[1]?esc(s[1]):"menunggu"}</div>
+    <div class="v" style="font-size:10.5px">${s[2]?fdate(s[2],1):""}</div></div>`).join("")}</div>
+  <div class="grid" style="grid-template-columns:1.5fr 1fr;gap:14px">
+    <div class="card"><div class="hd"><h3>Rincian barang</h3></div>
+      <div class="tw"><table><thead><tr><th>Barang</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr></thead><tbody>
+      ${o.items.map(it=>{const p=prod(it.productId)||{nama:"—",sku:"",sat:""};return `<tr><td><b>${esc(p.nama)}</b><div class="mono" style="font-size:11px;color:var(--muted)">${esc(p.sku)}</div></td>
+        <td class="r mono">${nf(it.qty)} ${esc(p.sat)}</td><td class="r mono">${rp(it.harga)}</td><td class="r mono">${rp(it.qty*it.harga)}</td></tr>`}).join("")}
+      </tbody><tfoot>
+        <tr><td colspan="3" class="r">Subtotal</td><td class="r mono">${rp(o.sub)}</td></tr>
+        <tr><td colspan="3" class="r">PPN 11%</td><td class="r mono">${rp(o.ppn)}</td></tr>
+        <tr><td colspan="3" class="r">Ongkos kirim</td><td class="r mono">${rp(o.ongkir)}</td></tr>
+        <tr><td colspan="3" class="r"><b>Total</b></td><td class="r mono"><b style="font-size:15px">${rp(o.total)}</b></td></tr>
+      </tfoot></table></div>
+      ${o.catatan?`<div class="bd" style="border-top:1px solid var(--line)"><b>Catatan:</b> ${esc(o.catatan)}</div>`:""}
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px"><div class="hd"><h3>Informasi</h3></div><div class="bd" style="font-size:13px">
+        ${[["Toko pemesan",store(o.storeId).nama],["Dibuat oleh",o.oleh],["Sumber stok",o.sumber==="HQ"?"Gudang Utama":store(o.sumber).nama],
+           ["Pelanggan",o.cust.nama],["Telepon",o.cust.telp||"—"],["Alamat",o.cust.alamat||"—"],
+           ["Pelanggan (master)",c?c.nama+" · "+c.kode:"—"],
+           ["Jenis pembayaran",(BAYAR[o.bayarTipe]||"—")+(o.bayarTipe!=="FULL"?" · ToP "+o.topHari+" hari":"")],
+           ["Sudah dibayar",rp(o.terbayar)],["Sisa tagihan",rp(sisaTagihan(o))],
+           ["Nominal DP",o.bayarTipe==="DP"?rp(o.dpNominal):"—"],
+           ["Jatuh tempo pelunasan",o.tempoBayar?fdate(o.tempoBayar):"—"],
+           ["Diverifikasi manajer",o.dicekOleh||"—"],["No. Purchase Request",o.noPR||"—"],
+           ["Total barang",nf(totalQty(o))+" pcs · "+o.items.length+" jenis"],
+           ["Kurir",o.kurir?kurir(o.kurir).n:"—"],["No. resi kurir",o.noAwb||"—"],
+           ["Disetujui oleh",o.approvedBy||"—"],["No. PO / referensi",o.noRef||"—"],
+           ["Bukti pemesanan",o.bukti?"Terlampir ("+o.bukti.nama+")":"Tidak ada"]]
+          .map(r=>`<div class="row" style="justify-content:space-between;gap:16px;padding:5px 0;border-bottom:1px solid #F0F3F6">
+            <span style="color:var(--muted)">${r[0]}</span><b style="text-align:right">${esc(r[1])}</b></div>`).join("")}
+      </div></div>
+      <div class="card"><div class="hd"><h3>Riwayat</h3></div><div class="bd">
+        <ul class="tl">${o.log.slice().reverse().map((l,i)=>`<li class="${i===0?"hi":""}"><div class="w">${esc(l.judul)}</div>
+          <div class="m">${fdate(l.ts,1)} · ${esc(l.oleh)}</div>${l.ket?`<div style="font-size:12px;color:var(--muted)">${esc(l.ket)}</div>`:""}</li>`).join("")}</ul>
+      </div></div>
+    </div></div>`;
+}
+
+/* ============ gate (login + public tracking) ============ */
+function gateView(){
+  return `<div class="gate">
+    <div class="left">
+      <div><div class="row" style="gap:10px"><span style="width:30px;height:30px;border-radius:3px;background:var(--amber);color:#111A24;display:grid;place-items:center;font-family:'Barlow Condensed';font-weight:700">D</span>
+        <span class="disp" style="color:#fff;font-size:17px">Dispatch Board</span></div></div>
+      <div>
+        <h2>Kerja rapi, kerja cepat,<br>hasil hebat.</h2>
+        <p class="sub">Satu sistem untuk menyatukan 5 toko, 1 gudang, dan seluruh proses kerja kita.</p>
+        <div class="spirit">Setiap data yang kamu input hari ini, membantu tim bekerja lebih cepat besok.
+          Jangan hanya menyelesaikan pekerjaan — bangun sistem yang membuat kita semua lebih mudah bekerja.</div>
+        <ul class="flowlist">
+          <li><b>01</b><span><b style="color:#fff;font-family:inherit">Input dengan benar</b> — karena data yang akurat adalah awal dari keputusan yang tepat.</span></li>
+          <li><b>02</b><span><b style="color:#fff;font-family:inherit">Proses dengan cepat</b> — jangan biarkan pekerjaan menumpuk.</span></li>
+          <li><b>03</b><span><b style="color:#fff;font-family:inherit">Kerja sebagai satu tim</b> — toko, gudang, dan sales saling terhubung.</span></li>
+          <li><b>04</b><span><b style="color:#fff;font-family:inherit">Jaga kerapian data</b> — apa yang rapi hari ini, memudahkan kita esok hari.</span></li>
+          <li><b>05</b><span><b style="color:#fff;font-family:inherit">Gunakan sistem dengan maksimal</b> — ERP ini dibuat untuk membantu kamu, bukan menambah pekerjaan.</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="quotebox">
+          <q>ERP bukan sekadar sistem. Ini adalah cara kita bekerja lebih rapi, lebih cepat, dan lebih profesional.</q>
+          <div class="chain"><span>Input kamu</span><b>→</b><span>Data kita</span><b>→</b><span>Keputusan lebih cepat</span><b>→</b><span>Bisnis lebih kuat</span></div>
+        </div>
+        <div class="closing">Satu data. Satu tim. Satu tujuan: tumbuh bersama.</div>
+      </div>
+    </div>
+    <div class="right">
+      <h2 style="font-size:26px;margin-bottom:4px">Masuk</h2>
+      <p style="color:var(--muted);margin-top:0">Gunakan email dan kata sandi yang diberikan super admin.</p>
+      <label class="f"><span>Email</span><input class="i" id="inEmail" type="email" autocomplete="username"
+        placeholder="nama@perusahaan.id" onkeydown="if(event.key==='Enter')document.getElementById('inPass').focus()"></label>
+      <label class="f"><span>Kata sandi</span><input class="i" id="inPass" type="password" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')app.login()"></label>
+      ${TURNSTILE_SITEKEY?`<div id="capbox" style="margin-bottom:12px"></div>`:""}
+      <button class="btn pri" style="padding:11px" id="btnMasuk" onclick="app.login()">Masuk</button>
+      <p class="hint">Lupa kata sandi atau belum punya akun? Hubungi super admin perusahaan. Pendaftaran mandiri tidak dibuka.</p>
+      <button class="linkbtn" style="color:var(--muted);align-self:flex-start" onclick="app.gantiKoneksi()">Ganti koneksi basis data</button>
+    </div></div>`;
+}
+function pasangCaptcha(){
+  const box=$("#capbox");
+  if(!TURNSTILE_SITEKEY||!box||box.dataset.siap) return;
+  const jalan=()=>{ const b=$("#capbox");
+    if(!window.turnstile||!b||b.dataset.siap) return;
+    b.dataset.siap="1";
+    try{
+      window.turnstile.render(b,{sitekey:TURNSTILE_SITEKEY,callback:t=>{CAPTCHA=t;},
+        "expired-callback":()=>{CAPTCHA=null;},
+        "error-callback":()=>{ CAPTCHA=null;
+          toast("Verifikasi keamanan gagal dimuat. Periksa site key dan domain di Cloudflare Turnstile.","bad"); }});
+    }catch(e){ b.dataset.siap=""; toast("Captcha gagal dipasang: "+e.message,"bad"); }
+  };
+  if(window.turnstile) return jalan();
+  if(!document.getElementById("tsjs")){
+    const sc=document.createElement("script"); sc.id="tsjs";
+    sc.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    sc.async=true; sc.onload=jalan; document.head.appendChild(sc);
+  }
+}
+
+/* ============ documents ============ */
+function barcode(str){ let s=""; for(let i=0;i<44;i++){ const c=str.charCodeAt(i%str.length)+i*7;
+  s+=`<i style="width:${1+(c%3)}px;height:${60+(c%40)}%"></i>`; } return `<div class="bars">${s}</div>`; }
+function docHead(judul,sub){
+  return `<div class="dhead"><div><h2>${judul}</h2><div class="kv">${sub}</div></div>
+    <div class="co" style="text-align:right"><b>${esc(DB.company.nama)}</b><br>${esc(DB.company.alamat)}<br>${esc(DB.company.telp)} · ${esc(DB.company.email)}</div></div>`;
+}
+function docSO(o){
+  return `<div class="doc">${docHead("Sales Order","No. "+esc(o.noSO)+" · "+fdate(o.tanggal,1)+" · "+esc(store(o.storeId).nama))}
+    <table><tr><td style="width:50%"><b>Pelanggan</b><br>${esc(o.cust.nama)}<br>${esc(o.cust.alamat||"-")}<br>${esc(o.cust.telp||"")}</td>
+      <td><b>Diminta oleh</b><br>Toko: ${esc(store(o.storeId).nama)}<br>Admin: ${esc(o.oleh)}<br>
+      Ambil stok dari: ${o.sumber==="HQ"?"Gudang Utama":esc(store(o.sumber).nama)}<br>
+      Status: ${esc(STAT[o.status]?STAT[o.status].l:o.status)}<br>
+      Pembayaran: ${esc(BAYAR[o.bayarTipe]||"-")}${o.bayarTipe==="DP"?" (ToP "+o.topHari+" hari, jatuh tempo "+fdate(o.tempoBayar)+")":""}
+      ${o.noPR?"<br>Purchase Request: "+esc(o.noPR):""}</td></tr></table>
+    <table><thead><tr><th style="width:34px">No</th><th>Kode</th><th>Nama barang</th><th style="width:64px">Qty</th><th style="width:56px">Satuan</th><th style="width:96px">Harga</th><th style="width:106px">Jumlah</th><th style="width:70px">Cek fisik</th></tr></thead><tbody>
+    ${o.items.map((it,i)=>{const p=prod(it.productId)||{};return `<tr><td>${i+1}</td><td>${esc(p.sku||"")}</td><td>${esc(p.nama||"")}</td>
+      <td style="text-align:right">${nf(it.qty)}</td><td>${esc(p.sat||"")}</td>
+      <td style="text-align:right">${rp(it.harga)}</td><td style="text-align:right">${rp(it.qty*it.harga)}</td><td></td></tr>`}).join("")}
+    <tr><td colspan="6" style="text-align:right"><b>Total ${nf(totalQty(o))} pcs</b></td><td style="text-align:right"><b>${rp(o.sub)}</b></td><td></td></tr>
+    </tbody></table>
+    ${o.catatan?`<div style="font-size:11px"><b>Catatan untuk gudang:</b> ${esc(o.catatan)}</div>`:""}
+    ${o.noRef?`<div style="font-size:11px"><b>No. PO / referensi pelanggan:</b> ${esc(o.noRef)}</div>`:""}
+    ${o.bukti&&o.bukti.tipe!=="application/pdf"?`<div style="margin-top:10px"><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Bukti pemesanan pelanggan</div>
+      <img src="${esc(o.bukti.url)}" style="max-width:78mm;max-height:95mm;border:1px solid #000"></div>`:
+      o.bukti?`<div style="font-size:11px;margin-top:6px"><b>Bukti pemesanan:</b> ${esc(o.bukti.nama)} (berkas PDF, lihat di sistem)</div>`:""}
+    <div style="font-size:10.5px;margin-top:8px">Lembar ini diserahkan secara fisik ke kru gudang sebagai dasar penyiapan barang. Kolom cek fisik dicentang saat barang diambil dari rak.</div>
+    <div class="sign"><div><div>Dibuat admin toko</div><div class="ln">${esc(o.oleh)}</div></div>
+      <div><div>Disetujui gudang</div><div class="ln">${esc(o.approvedBy||"")}</div></div>
+      <div><div>Barang disiapkan</div><div class="ln">Nama &amp; tanda tangan</div></div></div></div>`;
+}
+function docLabel(o){
+  const k=kurir(o.kurir);
+  return `<div class="label">
+    <div class="lrow lcour"><div class="lbig">${esc(k.n)}</div>
+      <div style="text-align:right;font-size:10px">${esc(DB.company.nama)}<br>${fdate(o.tglKirim||now())}</div></div>
+    <div class="lrow" style="text-align:center;padding:8px 10px">
+      ${barcode(o.noAwb||o.noSO)}
+      <div class="lawb">${esc(o.noAwb||"-")}</div>
+      <div style="font-size:9.5px;letter-spacing:.12em">NOMOR RESI ${esc(k.k)}</div></div>
+    <div class="lrow lgrid">
+      <div><div class="lk">Penerima</div><b>${esc(o.cust.nama)}</b><br>${esc(o.cust.telp||"")}<br>${esc(o.cust.alamat||"-")}</div>
+      <div><div class="lk">Pengirim</div><b>${esc(store(o.storeId).nama)}</b><br>${esc(store(o.storeId).telp||"")}<br>${esc(store(o.storeId).alamat||"")}</div>
+    </div>
+    <div class="lrow"><div class="lk" style="padding:6px 10px 2px">Isi paket — ${o.items.length} jenis · ${nf(totalQty(o))} pcs</div>
+      <table class="litem"><tbody>
+      ${o.items.map(it=>{const p=prod(it.productId)||{};return `<tr><td>${esc(p.nama||"—")}<div style="font-size:9px;color:#555">${esc(p.sku||"")}</div></td>
+        <td style="text-align:right;white-space:nowrap"><b>${nf(it.qty)}</b> ${esc(p.sat||"")}</td></tr>`}).join("")}
+      </tbody></table></div>
+    <div class="lrow lfoot"><div>Ref: ${esc(o.noSO)}${o.invoice?" · "+esc(o.invoice.no):""}</div>
+      <div>Rekam video saat membuka paket bila ada klaim kerusakan.</div></div>
+  </div>`;
+}
+function docInv(o){
+  const inv=o.invoice;
+  return `<div class="doc">${docHead("Invoice","No. "+esc(inv.no)+" · Terbit "+fdate(inv.tgl)+" · Jatuh tempo "+fdate(inv.tempo))}
+    <table><tr><td style="width:50%"><b>Tagihan kepada</b><br>${esc(o.cust.nama)}<br>${esc(o.cust.alamat||"-")}<br>${esc(o.cust.telp||"")}</td>
+      <td><b>Referensi</b><br>Sales order: ${esc(o.noSO)}<br>Kurir: ${esc(o.kurir?kurir(o.kurir).n:"-")}<br>No. resi: ${esc(o.noAwb||"-")}<br>Cabang: ${esc(store(o.storeId).nama)}</td></tr></table>
+    <table><thead><tr><th style="width:34px">No</th><th>Deskripsi</th><th style="width:60px">Qty</th><th style="width:110px">Harga</th><th style="width:120px">Jumlah</th></tr></thead><tbody>
+    ${o.items.map((it,i)=>{const p=prod(it.productId)||{};return `<tr><td>${i+1}</td><td>${esc(p.nama||"")} <span style="color:#666">(${esc(p.sku||"")})</span></td>
+      <td style="text-align:right">${nf(it.qty)}</td><td style="text-align:right">${rp(it.harga)}</td><td style="text-align:right">${rp(it.qty*it.harga)}</td></tr>`}).join("")}
+    <tr><td colspan="4" style="text-align:right">Subtotal</td><td style="text-align:right">${rp(o.sub)}</td></tr>
+    <tr><td colspan="4" style="text-align:right">PPN 11%</td><td style="text-align:right">${rp(o.ppn)}</td></tr>
+    <tr><td colspan="4" style="text-align:right">Ongkos kirim</td><td style="text-align:right">${rp(o.ongkir)}</td></tr>
+    <tr><td colspan="4" style="text-align:right"><b>TOTAL TAGIHAN</b></td><td style="text-align:right"><b>${rp(o.total)}</b></td></tr>
+    </tbody></table>
+    <div class="kv">Status pembayaran: <b>${esc(inv.status)}</b></div>
+    <div style="font-size:11px;margin-top:10px"><b>Pembayaran</b><br>Transfer ke rekening perusahaan atas nama ${esc(DB.company.nama)}.<br>
+      Cantumkan nomor invoice pada berita transfer. Invoice ini sah tanpa tanda tangan basah.</div>
+    <div class="sign"><div><div>Hormat kami</div><div class="ln">${esc(inv.oleh)} — Sales Admin</div></div>
+      <div><div>Diterima</div><div class="ln">${esc(o.cust.nama)}</div></div></div></div>`;
+}
+
+/* ============ modal ============ */
+function modal(title,body,footer){
+  $("#modalHost").innerHTML=`<div id="modalWrap" onclick="if(event.target.id==='modalWrap')app.closeModal()">
+    <div class="modal"><div class="mh"><h3>${title}</h3><button class="x" onclick="app.closeModal()">×</button></div>
+    <div class="mb">${body}</div><div class="mf">${footer||'<button class="btn gh" onclick="app.closeModal()">Tutup</button>'}</div></div></div>`;
+  applyBil($("#modalHost")); applyBil($("#printArea"));
+}
+
+/* ============ actions ============ */
+const app={
+  go(p){ UI.page=p; UI.notifOpen=false; if(p==="so-baru")UI.draft=null; render(); window.scrollTo(0,0); },
+  detail(id){ UI.page="detail"; UI.filter.orderId=id; UI.notifOpen=false; render(); window.scrollTo(0,0); },
+  toggleNotif(){ UI.notifOpen=!UI.notifOpen; render(); },
+  setQ(v){ UI.filter.q=v; const el=document.activeElement, pos=el.selectionStart; render();
+    const n=document.querySelector('input[placeholder^="Cari nama"]'); if(n){n.focus();n.setSelectionRange(pos,pos);} },
+  setStat(v){ UI.filter.stat=v; render(); },
+  setResi(v){ UI.filter.resi=v; render(); },
+  setRange(k,v){ if(k==="reset"){UI.filter.from="";UI.filter.to="";} else UI.filter[k]=v; render(); },
+  setPer(v){ UI.filter.per=v; render(); },
+  toggleBil(){ toggleBil(); },
+  gateTab(t){ UI.filter.gate=t; render(); },
+
+  /* --- koneksi & sesi --- */
+  async connect(){
+    const url=(($("#cfgUrl")||{}).value||"").trim(), key=(($("#cfgKey")||{}).value||"").trim();
+    if(!/^https:\/\/.+/.test(url)||key.length<20){ toast("Isi Project URL dan kunci anon dengan lengkap.","bad"); return; }
+    CFG={url,key}; try{ localStorage.setItem(CFGKEY,JSON.stringify(CFG)); }catch(e){}
+    render();
+  },
+  gantiKoneksi(){ try{ localStorage.removeItem(CFGKEY); localStorage.removeItem(SESKEY); }catch(e){}
+    CFG=null; SESS=null; ME=null; DB=null; clearInterval(POLLER); renderSetup(); },
+  async login(){
+    const email=(($("#inEmail")||{}).value||"").trim(), pw=($("#inPass")||{}).value||"";
+    if(!email||!pw){ toast("Email dan kata sandi wajib diisi.","bad"); return; }
+    if(TURNSTILE_SITEKEY&&!CAPTCHA){ toast("Selesaikan verifikasi keamanan dulu.","bad"); return; }
+    const b=$("#btnMasuk"); if(b){ b.disabled=true; b.textContent="Memeriksa…"; }
+    try{
+      await masuk(email,pw,CAPTCHA);
+      await loadAll(); startPoll(); UI.page="dashboard"; render();
+      toast("Selamat datang, "+ME.nama+".","good");
+    }catch(e){
+      CAPTCHA=null; toast(e.message,"bad");
+      SESS=null; try{localStorage.removeItem(SESKEY);}catch(x){}
+      render();
+    }
+  },
+  async logout(){ await keluarSesi(); UI={page:"dashboard",filter:{},notifOpen:false,draft:null}; render(); },
+
+  /* --- notifikasi --- */
+  readAll(){ act(()=>rpc("mark_notif_read")); },
+  openNotif(id){ const n=DB.notifs.find(x=>x.id===id); const oid=n&&n.orderId;
+    act(()=>rpc("mark_notif_read")).then(()=>{
+      if(oid&&order(oid)) app.detail(oid); else { UI.notifOpen=false; render(); } }); },
+
+  /* --- draft sales order --- */
+  draftSet(k,v){ UI.draft[k]=["ongkir","jatuhTempo","topHari","dpNominal"].includes(k)?(+v||0):v; render(); },
+  custSet(k,v){ UI.draft.cust[k]=v; },
+  addItem(){ const p=DB.products[0]; if(!p){ toast("Belum ada barang di master data.","bad"); return; }
+    UI.draft.items.push({productId:p.id,qty:1,harga:p.jual}); render(); },
+  delItem(i){ if(UI.draft.items.length===1){toast("Minimal satu barang.","bad");return;} UI.draft.items.splice(i,1); render(); },
+  itemProd(i,v){ const p=prod(v); UI.draft.items[i].productId=v; UI.draft.items[i].harga=p.jual; render(); },
+  itemQty(i,v){ UI.draft.items[i].qty=Math.max(1,+v||1); render(); },
+  itemHarga(i,v){ UI.draft.items[i].harga=Math.max(0,+v||0); render(); },
+  async pilihBukti(input){
+    const f=input.files&&input.files[0]; if(!f)return;
+    UI.buktiLoad=true; UI.buktiErr=false; render();
+    try{ UI.draft.bukti=await unggahBukti(f); toast("Bukti pemesanan terunggah.","good"); }
+    catch(e){ toast(e.message,"bad"); }
+    UI.buktiLoad=false; render();
+  },
+  hapusBukti(){ UI.draft.bukti=null; render(); },
+  lihatBuktiBayar(id){ const o=order(id); if(!o||!o.buktiBayar.length){ toast("Belum ada bukti pembayaran.","bad"); return; }
+    modal("Bukti pembayaran — "+esc(o.noSO),
+      `<table class="mtable" style="margin-bottom:12px"><tbody>
+        <tr><td class="k">Jenis pembayaran</td><td class="v">${esc(BAYAR[o.bayarTipe]||"—")}</td></tr>
+        <tr><td class="k">Total tagihan</td><td class="v">${rp(o.total)}</td></tr>
+        ${o.dicekOleh?`<tr><td class="k">Diverifikasi</td><td class="v">${esc(o.dicekOleh)} · ${fdate(o.tglCek,1)}</td></tr>`:""}
+      </tbody></table>
+      ${o.buktiBayar.map((b,i)=>kartuBukti(b,i)+(b.tipe!=="application/pdf"?`<img class="buktibig" style="margin-bottom:14px" src="${esc(b.url)}">`:"")).join("")}`); },
+  lihatBukti(id){ const o=order(id);
+    if(!o||!o.bukti){ toast("Pesanan ini tidak punya lampiran bukti.","bad"); return; }
+    const b=o.bukti;
+    modal("Bukti pemesanan — "+esc(o.noSO),
+      `<div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <div><b>${esc(b.nama||"lampiran")}</b><div class="hint">${b.ts?"Diunggah "+fdate(b.ts,1):""}${o.noRef?" · Ref "+esc(o.noRef):""}</div></div>
+        <a class="btn gh sm" href="${esc(b.url)}" target="_blank" rel="noopener">Buka di tab baru</a></div>
+      ${b.tipe==="application/pdf"?`<div class="empty"><div class="big">Berkas PDF</div><p>Gunakan tombol di atas untuk membukanya.</p></div>`
+        :`<img class="buktibig" src="${esc(b.url)}" alt="bukti pemesanan">`}`); },
+  submitSO(){
+    const d=UI.draft;
+    if(!d.customerId){ toast("Pilih pelanggan dari Customer Master dulu.","bad"); return; }
+    if(!d.items.length){ toast("Tambahkan minimal satu barang.","bad"); return; }
+    if(!d.bukti){ UI.buktiErr=true; render(); toast("Bukti pemesanan pelanggan wajib diunggah.","bad"); return; }
+    const sub=d.items.reduce((a,i)=>a+i.qty*i.harga,0), ppn=Math.round(sub*0.11), tot=sub+ppn+(+d.ongkir||0);
+    let baru=null;
+    act(async()=>{
+      baru=await rpc("create_order",{p:{
+        store_id:d.storeId, sumber:d.sumber, customer_id:d.customerId, alamat:d.alamat||"",
+        items:d.items.map(i=>({product_id:i.productId,qty:i.qty,harga:i.harga})),
+        sub, ppn, ongkir:+d.ongkir||0, total:tot,
+        catatan:d.catatan||"", no_ref:d.noRef||"", bukti:d.bukti, jatuh_tempo:+d.jatuhTempo||14,
+        bayar_tipe:d.bayarTipe, top_hari:d.bayarTipe==="FULL"?null:(+d.topHari||30),
+        dp_nominal:d.bayarTipe==="DP"?(+d.dpNominal||0):0}});
+    }).then(ok=>{ if(!ok||!baru)return; UI.draft=null;
+      toast("Sales order "+baru.no_so+" tersimpan — Level "+baru.level+".","good");
+      app.detail(baru.id); setTimeout(()=>app.formBayar(baru.id),350); });
+  },
+
+  /* --- customer master --- */
+  setCQ(v){ UI.filter.cq=v; const el=document.activeElement,pos=el.selectionStart; render();
+    const n=document.querySelector('input[placeholder^="Cari nama atau kode"]'); if(n){n.focus();n.setSelectionRange(pos,pos);} },
+  editCustomer(id){ const c=id?cust(id):{kode:"",nama:"",tipe:"CASH",telp:"",alamat:"",npwp:"",
+    creditLimit:0,topDefault:30,status:"AKTIF",catatan:""};
+    const k=id?kreditCust(id):null;
+    modal(id?"Ubah pelanggan":"Tambah pelanggan",
+      `${id&&k&&k.piutang?`<div style="background:#FFF8E6;border-left:3px solid var(--amber);padding:10px 12px;margin-bottom:14px;font-size:12.5px">
+        Piutang berjalan <b>${rp(k.piutang)}</b>${k.overdue?` · tunggakan <b style="color:var(--alert)">${rp(k.overdue)}</b> (${k.hari} hari)`:""}
+        pada ${k.faktur} faktur.</div>`:""}
+       <div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Kode pelanggan</span><input class="i mono" id="cKode" value="${esc(c.kode)}" placeholder="otomatis bila dikosongkan"></label>
+        <label class="f"><span>Tipe</span><select class="i" id="cTipe">
+          ${Object.keys(TIPECUST).map(t=>`<option value="${t}" ${c.tipe===t?"selected":""}>${TIPECUST[t]}</option>`).join("")}</select></label></div>
+       <label class="f"><span>Nama pelanggan</span><input class="i" id="cNama" value="${esc(c.nama)}"></label>
+       <div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Telepon</span><input class="i" id="cTelp" value="${esc(c.telp)}"></label>
+        <label class="f"><span>NPWP (opsional)</span><input class="i mono" id="cNpwp" value="${esc(c.npwp)}"></label></div>
+       <label class="f"><span>Alamat</span><textarea class="i" id="cAlamat" rows="2">${esc(c.alamat)}</textarea></label>
+       <div class="grid g3" style="gap:0 14px">
+        <label class="f"><span>Credit limit (0 = tunai saja)</span><input class="i mono" id="cLimit" type="number" value="${c.creditLimit}"></label>
+        <label class="f"><span>ToP default (hari)</span><input class="i mono" id="cTop" type="number" value="${c.topDefault}"></label>
+        <label class="f"><span>Status</span><select class="i" id="cStatus">
+          ${["AKTIF","AWASI","BLOKIR"].map(t=>`<option value="${t}" ${c.status===t?"selected":""}>${t}</option>`).join("")}</select></label></div>
+       <label class="f" style="margin:0"><span>Catatan</span><input class="i" id="cCat" value="${esc(c.catatan)}" placeholder="Contoh: hanya melayani transfer, tidak menerima giro"></label>
+       <p class="hint">Status BLOKIR membuat seluruh pesanannya masuk Level 3. Credit limit 0 berarti pelanggan tidak diberi plafon kredit.</p>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button><button class="btn pri" onclick="app.saveCustomer('${id||""}')">Simpan</button>`); },
+  saveCustomer(id){ const g=x=>($("#"+x)||{}).value;
+    const nama=(g("cNama")||"").trim();
+    if(!nama){ toast("Nama pelanggan wajib diisi.","bad"); return; }
+    const body={kode:(g("cKode")||"").trim()||("CUST/"+String(DB.customers.length+1).padStart(4,"0")),
+      nama,tipe:g("cTipe"),telp:g("cTelp")||"",alamat:g("cAlamat")||"",npwp:g("cNpwp")||"",
+      credit_limit:+g("cLimit")||0,top_default:+g("cTop")||30,status:g("cStatus"),catatan:g("cCat")||""};
+    this.closeModal();
+    act(()=>api(id?"/rest/v1/customers?id=eq."+id:"/rest/v1/customers",{method:id?"PATCH":"POST",
+      headers:{Prefer:"return=representation"},body:JSON.stringify(body)}),"Data pelanggan tersimpan."); },
+
+  /* --- finance --- */
+  formSetujuFinance(id){ const o=order(id); if(!o)return; const c=cust(o.customerId), k=c?kreditCust(c.id):null;
+    modal("Setujui Level 3 — "+esc(o.noSO),
+      `${kartuLevel(o)}
+       <table class="mtable" style="margin-top:12px"><tbody>
+        <tr><td class="k">Nilai pesanan</td><td class="v">${rp(o.total)}</td></tr>
+        ${c?`<tr><td class="k">Piutang berjalan</td><td class="v">${rp(k.piutang)}</td></tr>
+        <tr><td class="k">Setelah SO ini</td><td class="v">${rp(k.piutang+(o.bayarTipe==="FULL"?0:o.total))}</td></tr>
+        <tr><td class="k">Credit limit</td><td class="v">${c.creditLimit?rp(c.creditLimit):"tanpa limit"}</td></tr>`:""}
+       </tbody></table>
+       <label class="f" style="margin-top:12px"><span>Dasar persetujuan</span>
+         <input class="i" id="fKet" placeholder="Contoh: disetujui dengan jaminan giro mundur 30 hari"></label>
+       <p class="hint" style="margin:0">Catatan ini tersimpan permanen di riwayat pesanan.</p>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button>
+       <button class="btn pri" onclick="app.setujuiFinance('${id}')">Setujui</button>`); },
+  setujuiFinance(id){ const ket=(($("#fKet")||{}).value||"").trim(); this.closeModal();
+    act(()=>rpc("finance_approve",{p_id:id,p_ket:ket}),"Disetujui Finance. Invoice sah terbit."); },
+  formTolakFinance(id){
+    modal("Tolak Level 3",
+      `<label class="f"><span>Alasan penolakan</span><textarea class="i" id="fAlasan" rows="3"
+        placeholder="Contoh: tunggakan 45 hari belum dilunasi, tidak ada jaminan"></textarea></label>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button>
+       <button class="btn dgr" onclick="app.tolakFinance('${id}')">Tolak</button>`); },
+  tolakFinance(id){ const a=(($("#fAlasan")||{}).value||"").trim();
+    if(a.length<5){ toast("Tuliskan alasannya lebih jelas.","bad"); return; }
+    this.closeModal(); act(()=>rpc("finance_reject",{p_id:id,p_alasan:a}),"Ditolak. Dikembalikan ke admin toko."); },
+
+  /* --- pelunasan piutang --- */
+  formPelunasan(id){ const o=order(id); if(!o)return; UI.bayar=null;
+    modal("Catat pelunasan — "+esc(o.noSO),
+      `<table class="mtable"><tbody>
+        <tr><td class="k">Pelanggan</td><td class="v">${esc(o.cust.nama)}</td></tr>
+        <tr><td class="k">Total tagihan</td><td class="v">${rp(o.total)}</td></tr>
+        <tr><td class="k">Sudah dibayar</td><td class="v">${rp(o.terbayar)}</td></tr>
+        <tr><td class="k"><b>Sisa tagihan</b></td><td class="v" style="font-size:15px">${rp(sisaTagihan(o))}</td></tr>
+        <tr><td class="k">Jatuh tempo</td><td class="v">${o.tempoBayar?fdate(o.tempoBayar):"—"}</td></tr>
+      </tbody></table>
+      <label class="f" style="margin-top:12px"><span>Nominal diterima</span>
+        <input class="i mono" id="lNom" type="number" value="${sisaTagihan(o)}"></label>
+      <div id="bayarBox">${kotakBayar()}</div>
+      <label class="f" style="margin-top:10px"><span>Keterangan</span><input class="i" id="lKet" placeholder="Transfer BCA 12 Sep, a.n. …"></label>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button>
+       <button class="btn pri" onclick="app.simpanPelunasan('${id}')">Catat pelunasan</button>`); },
+  simpanPelunasan(id){
+    const nom=+(($("#lNom")||{}).value||0), ket=($("#lKet")||{}).value||"", b=UI.bayar;
+    if(nom<=0){ toast("Nominal pelunasan belum diisi.","bad"); return; }
+    this.closeModal();
+    act(()=>rpc("catat_pelunasan",{p_id:id,p_nominal:nom,p_bukti:b,p_ket:ket}),"Pelunasan tercatat.")
+      .then(()=>{ UI.bayar=null; }); },
+
+  /* --- pembayaran & verifikasi --- */
+  formBayar(id){ const o=order(id); if(!o)return; UI.bayar=null;
+    const sisa=sisaTempo(o);
+    modal((o.bayarTipe==="TEMPO"?"Ajukan pesanan tempo — ":"Unggah bukti pembayaran — ")+esc(o.noSO),
+      `<table class="mtable"><tbody>
+        <tr><td class="k">Pelanggan</td><td class="v">${esc(o.cust.nama)}</td></tr>
+        <tr><td class="k">Jenis pembayaran</td><td class="v">${esc(BAYAR[o.bayarTipe]||"—")}${o.bayarTipe==="DP"?" · ToP "+o.topHari+" hari":""}</td></tr>
+        ${o.bayarTipe==="DP"?`<tr><td class="k">Nominal DP</td><td class="v">${rp(o.dpNominal)}</td></tr>
+          <tr><td class="k">Jatuh tempo pelunasan</td><td class="v">${fdate(o.tempoBayar)}${sisa!==null?" ("+(sisa<0?"lewat "+(-sisa)+" hari":sisa+" hari lagi")+")":""}</td></tr>`:""}
+        <tr><td class="k"><b>Total yang harus dibayar</b></td><td class="v" style="font-size:15px">${rp(o.total)}</td></tr>
+      </tbody></table>
+      ${o.alasanTolak?`<div style="background:#FDF4F3;border-left:3px solid var(--alert);padding:10px 12px;margin:12px 0;font-size:12.5px">
+        <b>Dikembalikan manajer:</b> ${esc(o.alasanTolak)}</div>`:""}
+      ${kartuLevel(o)}
+      <div id="bayarBox" style="margin-top:12px">${kotakBayar()}</div>
+      ${o.bayarTipe==="TEMPO"?`<p class="hint" style="margin:6px 0 0">Pesanan tempo boleh diajukan tanpa lampiran. Pelunasan dicatat belakangan lewat menu Credit Control.</p>`:""}
+      <label class="f" style="margin-top:10px"><span>Keterangan (opsional)</span>
+        <input class="i" id="bKet" placeholder="Contoh: transfer BCA a.n. PT Karya Mandiri, 14.20 WIB"></label>
+      <p class="hint" style="margin:0">Setelah dikirim, pesanan masuk ke Manajer Toko untuk diverifikasi keaslian bukti dan kecocokan nominalnya.</p>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button>
+       <button class="btn pri" onclick="app.kirimBayar('${id}')">${o.level===1?"Kirim — lolos otomatis ke gudang":"Kirim untuk diperiksa"}</button>`); },
+  async pilihBuktiBayar(input){
+    const f=input.files&&input.files[0]; if(!f)return;
+    UI.bayarLoad=true; const b=$("#bayarBox"); if(b) b.innerHTML=kotakBayar();
+    try{ UI.bayar=await unggahBukti(f); }catch(e){ toast(e.message,"bad"); }
+    UI.bayarLoad=false; const b2=$("#bayarBox"); if(b2) b2.innerHTML=kotakBayar();
+  },
+  hapusBuktiBayar(){ UI.bayar=null; const b=$("#bayarBox"); if(b) b.innerHTML=kotakBayar(); },
+  kirimBayar(id){
+    const o=order(id);
+    if(!UI.bayar&&o&&o.bayarTipe!=="TEMPO"){ toast("Unggah bukti pembayaran dulu.","bad"); return; }
+    const ket=($("#bKet")||{}).value||"", bukti=UI.bayar;
+    this.closeModal();
+    act(()=>rpc("submit_payment",{p_id:id,p_bukti:bukti,p_ket:ket}),
+      "Bukti pembayaran dikirim ke Manajer Toko.").then(()=>{ UI.bayar=null; }); },
+  setujuiManajer(id){ const o=order(id); if(!o)return;
+    if(!confirm("Setujui pembayaran "+o.noSO+" sebesar "+rp(o.total)+"?\n\nPastikan uang benar-benar sudah masuk ke rekening perusahaan."))return;
+    act(()=>rpc("manager_approve",{p_id:id}),"Pembayaran diverifikasi. Invoice sah terbit."); },
+  formTolak(id){ const o=order(id); if(!o)return;
+    modal("Kembalikan ke admin toko — "+esc(o.noSO),
+      `<p style="margin-top:0">Tuliskan apa yang perlu diperbaiki. Alasan ini muncul di layar admin toko.</p>
+       <label class="f"><span>Alasan penolakan</span><textarea class="i" id="tAlasan" rows="3"
+         placeholder="Contoh: nominal transfer Rp 4.900.000 tidak sesuai total tagihan Rp 4.928.400"></textarea></label>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button>
+       <button class="btn dgr" onclick="app.tolakManajer('${id}')">Kembalikan</button>`); },
+  tolakManajer(id){ const a=(($("#tAlasan")||{}).value||"").trim();
+    if(a.length<5){ toast("Tuliskan alasannya lebih jelas.","bad"); return; }
+    this.closeModal();
+    act(()=>rpc("manager_reject",{p_id:id,p_alasan:a}),"Pesanan dikembalikan ke admin toko."); },
+  teruskanPR(id){ act(()=>rpc("forward_to_warehouse",{p_id:id}),
+    "Diteruskan ke gudang sebagai Purchase Request."); },
+
+  /* --- gudang --- */
+  approve(id){ act(()=>rpc("approve_order",{p_id:id}),"Pesanan disetujui. Stok berkurang otomatis."); },
+  formKirim(id){ const o=order(id); if(!o)return;
+    modal("Input data pengiriman — "+esc(o.noSO),
+      `<div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Kurir pengirim</span><select class="i" id="kKur">
+          ${KURIR.map(k=>`<option value="${k.k}" ${o.kurir===k.k?"selected":""}>${esc(k.n)}</option>`).join("")}</select></label>
+        <label class="f"><span>Nomor resi dari kurir / e-commerce</span>
+          <input class="i mono" id="kAwb" placeholder="Salin persis dari aplikasi kurir" value="${esc(o.noAwb||"")}"></label></div>
+       <label class="f"><span>Catatan pengiriman (opsional)</span><input class="i" id="kKet" value="${esc(o.ketKirim||"")}" placeholder="Contoh: 2 koli, diambil pukul 15.00"></label>
+       <div style="background:#F7F9FB;border:1px solid var(--line);border-radius:var(--r);padding:11px 13px">
+         <div class="hint" style="margin-bottom:5px">Isi paket yang akan tercetak di label</div>
+         ${o.items.map(it=>{const p=prod(it.productId)||{};return `<div class="row" style="justify-content:space-between;font-size:12.5px;padding:2px 0">
+           <span>${esc(p.nama||"—")}</span><b class="mono">${nf(it.qty)} ${esc(p.sat||"")}</b></div>`}).join("")}
+         <div class="row" style="justify-content:space-between;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;font-size:12.5px">
+           <b>Total</b><b class="mono">${nf(totalQty(o))} pcs</b></div></div>
+       <p class="hint">Nomor resi dibuat oleh kurir, bukan oleh sistem ini.</p>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button><button class="btn pri" onclick="app.simpanKirim('${id}')">Simpan &amp; cetak label</button>`); },
+  simpanKirim(id){
+    const k=($("#kKur")||{}).value, awb=(($("#kAwb")||{}).value||"").trim(), ket=($("#kKet")||{}).value||"";
+    if(k!=="INTERNAL"&&awb.length<6){ toast("Nomor resi belum diisi dengan benar.","bad"); return; }
+    this.closeModal();
+    act(()=>rpc("ship_order",{p_id:id,p_kurir:k,p_awb:awb,p_ket:ket}))
+      .then(ok=>{ if(!ok)return; toast("Data pengiriman tersimpan.","good");
+        setTimeout(()=>app.printDoc("label",id),350); });
+  },
+  lacakKurir(id){ const o=order(id); if(!o)return; const k=kurir(o.kurir);
+    const buka=()=>{ if(k.web) window.open(k.web,"_blank","noopener"); else toast("Kurir internal — tidak ada situs pelacakan.","bad"); };
+    if(navigator.clipboard&&o.noAwb){ navigator.clipboard.writeText(o.noAwb)
+      .then(()=>{ toast("Resi "+o.noAwb+" disalin. Tempel di situs "+k.n+".","good"); buka(); }).catch(buka); }
+    else buka(); },
+  selesai(id){ act(()=>rpc("complete_order",{p_id:id}),"Pesanan ditandai selesai."); },
+  batal(id){ const o=order(id); if(!o)return;
+    if(!confirm("Batalkan "+o.noSO+"? Stok yang sudah keluar tidak dikembalikan otomatis."))return;
+    act(()=>rpc("cancel_order",{p_id:id}),"Pesanan dibatalkan."); },
+
+  /* --- invoice --- */
+  terbitkanInvoice(id){ act(()=>rpc("issue_invoice",{p_id:id}),"Invoice diterbitkan."); },
+  lunas(id){ act(()=>rpc("mark_paid",{p_id:id}),"Invoice ditandai lunas."); },
+  shareLink(id){ const o=order(id);
+    modal("Bagikan invoice online",
+      `<p>Pelanggan cukup membuka halaman ini, pilih tab <b>Cek invoice</b>, lalu memasukkan nomor berikut.</p>
+       <div class="row" style="gap:10px;margin:12px 0"><input class="i mono" readonly value="${esc(o.invoice.no)}" onclick="this.select()"></div>`,
+      `<button class="btn gh" onclick="app.closeModal()">Tutup</button><button class="btn pri" onclick="app.closeModal();app.printDoc('inv','${id}')">Cetak PDF sekarang</button>`); },
+
+  /* --- master barang --- */
+  newProduct(){ this.editProduct(null); },
+  editProduct(id){ const p=id?prod(id):{sku:"",nama:"",kat:"",sat:"pcs",beli:0,jual:0,min:0,pusat:0};
+    modal(id?"Ubah barang":"Tambah barang",
+      `<div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>SKU</span><input class="i mono" id="pSku" value="${esc(p.sku)}"></label>
+        <label class="f"><span>Kategori</span><input class="i" id="pKat" value="${esc(p.kat)}"></label></div>
+       <label class="f"><span>Nama barang</span><input class="i" id="pNama" value="${esc(p.nama)}"></label>
+       <div class="grid g4" style="gap:0 14px">
+        <label class="f"><span>Satuan</span><input class="i" id="pSat" value="${esc(p.sat)}"></label>
+        <label class="f"><span>Harga beli</span><input class="i" id="pBeli" type="number" value="${p.beli}"></label>
+        <label class="f"><span>Harga jual (price list)</span><input class="i" id="pJual" type="number" value="${p.jual}"></label>
+        <label class="f"><span>Harga bottom</span><input class="i" id="pBottom" type="number" value="${p.bottom||0}"></label></div>
+       <label class="f"><span>Stok minimum</span><input class="i" id="pMin" type="number" value="${p.min}"></label>
+       ${id?`<p class="hint" style="margin:0">Stok tidak diubah dari sini. Gunakan menu Barang Masuk / Keluar agar tercatat di riwayat mutasi.</p>`
+        :`<label class="f"><span>Stok awal di gudang utama</span><input class="i" id="pPusat" type="number" value="0"></label>
+          <p class="hint" style="margin:0">Stok awal dicatat sebagai barang masuk sehingga tetap ada jejaknya.</p>`}`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button><button class="btn pri" onclick="app.saveProduct('${id||""}')">Simpan</button>`); },
+  saveProduct(id){
+    const g=x=>($("#"+x)||{}).value;
+    const nama=(g("pNama")||"").trim(); if(!nama){ toast("Nama barang wajib diisi.","bad"); return; }
+    const body={sku:(g("pSku")||"").trim()||("SKU-"+Date.now().toString(36).toUpperCase()),nama,
+      kat:g("pKat")||"Umum",sat:g("pSat")||"pcs",beli:+g("pBeli")||0,jual:+g("pJual")||0,
+      harga_bottom:+g("pBottom")||0,min_stok:+g("pMin")||0};
+    const awal=id?0:(+g("pPusat")||0);
+    this.closeModal();
+    act(async()=>{
+      if(id) await api("/rest/v1/products?id=eq."+id,{method:"PATCH",
+        headers:{Prefer:"return=representation"},body:JSON.stringify(body)});
+      else{
+        const baru=await api("/rest/v1/products",{method:"POST",
+          headers:{Prefer:"return=representation"},body:JSON.stringify(body)});
+        if(awal>0) await rpc("move_stock",{p_tipe:"MASUK",p_product:baru[0].id,p_qty:awal,
+          p_lok:"HQ",p_oleh:"HQ",p_ket:"Stok awal"});
+      }
+    },"Data barang tersimpan."); },
+
+  /* --- master toko --- */
+  editStore(id){ const st=id?store(id):{kode:"",nama:"",alamat:"",telp:""};
+    modal(id?"Ubah toko":"Tambah toko",
+      `<div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Kode</span><input class="i mono" id="sKode" value="${esc(st.kode)}" placeholder="PLG"></label>
+        <label class="f"><span>Nama toko</span><input class="i" id="sNama" value="${esc(st.nama)}"></label></div>
+      <label class="f"><span>Alamat</span><input class="i" id="sAlamat" value="${esc(st.alamat||"")}"></label>
+      <label class="f"><span>Telepon</span><input class="i" id="sTelp" value="${esc(st.telp||"")}"></label>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button><button class="btn pri" onclick="app.saveStore('${id||""}')">Simpan</button>`); },
+  saveStore(id){ const g=x=>($("#"+x)||{}).value;
+    const body={kode:(g("sKode")||"").toUpperCase().trim(),nama:(g("sNama")||"").trim(),
+      alamat:g("sAlamat")||"",telp:g("sTelp")||""};
+    if(!body.nama||!body.kode){ toast("Kode dan nama toko wajib diisi.","bad"); return; }
+    this.closeModal();
+    act(()=>api(id?"/rest/v1/stores?id=eq."+id:"/rest/v1/stores",{method:id?"PATCH":"POST",
+      headers:{Prefer:"return=representation"},body:JSON.stringify(body)}),"Data toko tersimpan."); },
+
+  /* --- master pengguna --- */
+  editUser(id){ const u=id?DB.users.find(x=>x.id===id):{id:"",nama:"",email:"",role:"toko",storeId:DB.stores[0]&&DB.stores[0].id};
+    const roles=[["owner","Super Admin"],["toko","Admin Toko"],["manajer","Manajer Toko"],
+      ["finance","Finance"],["gudang","Admin Gudang"],["sales","Sales Admin"]];
+    modal(id?"Ubah pengguna":"Tambah pengguna",
+      `${id?"":`<div style="background:#FFF8E6;border-left:3px solid var(--amber);padding:10px 12px;margin-bottom:14px;font-size:12.5px">
+        <b>Buat akunnya dulu di Supabase.</b> Buka Authentication → Users → Add user, isi email dan kata sandi,
+        centang Auto Confirm User. Salin <b>User UID</b> yang muncul, lalu tempel di kolom pertama di bawah.</div>
+        <label class="f"><span>User UID dari Supabase</span><input class="i mono" id="uId" placeholder="00000000-0000-0000-0000-000000000000"></label>`}
+       <div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Nama lengkap</span><input class="i" id="uNama" value="${esc(u.nama)}"></label>
+        <label class="f"><span>Email</span><input class="i" id="uEmail" value="${esc(u.email||"")}" placeholder="nama@perusahaan.id"></label></div>
+       <div class="grid g2" style="gap:0 14px">
+        <label class="f"><span>Peran</span><select class="i" id="uRole">
+          ${roles.map(r=>`<option value="${r[0]}" ${u.role===r[0]?"selected":""}>${r[1]}</option>`).join("")}</select></label>
+        <label class="f"><span>Toko penempatan</span><select class="i" id="uStore">
+          <option value="">— tidak terikat toko —</option>
+          ${DB.stores.map(st=>`<option value="${st.id}" ${u.storeId===st.id?"selected":""}>${esc(st.nama)}</option>`).join("")}</select></label></div>
+       <p class="hint" style="margin:0">Admin toko wajib dipilihkan toko penempatan; ia hanya akan melihat pesanan tokonya sendiri.</p>`,
+      `<button class="btn gh" onclick="app.closeModal()">Batal</button><button class="btn pri" onclick="app.saveUser('${id||""}')">Simpan</button>`); },
+  saveUser(id){ const g=x=>($("#"+x)||{}).value;
+    const nama=(g("uNama")||"").trim(), email=(g("uEmail")||"").trim().toLowerCase(),
+      role=g("uRole"), store_id=g("uStore")||null, uid=(g("uId")||"").trim();
+    if(!nama){ toast("Nama wajib diisi.","bad"); return; }
+    if(role==="toko"&&!store_id){ toast("Admin toko harus dipilihkan toko penempatan.","bad"); return; }
+    if(!id&&!/^[0-9a-f-]{36}$/i.test(uid)){ toast("User UID dari Supabase belum benar.","bad"); return; }
+    this.closeModal();
+    act(()=>api(id?"/rest/v1/profiles?id=eq."+id:"/rest/v1/profiles",{method:id?"PATCH":"POST",
+      headers:{Prefer:"return=representation"},
+      body:JSON.stringify(id?{nama,email,role,store_id}:{id:uid,nama,email,role,store_id,aktif:true})}),
+      "Data pengguna tersimpan."); },
+  toggleUser(id){ const u=DB.users.find(x=>x.id===id); if(!u)return;
+    if(u.id===ME.id){ toast("Akun sendiri tidak bisa dinonaktifkan.","bad"); return; }
+    if(u.aktif&&u.role==="owner"&&DB.users.filter(x=>x.role==="owner"&&x.aktif).length<=1){
+      toast("Minimal harus ada satu Super Admin aktif.","bad"); return; }
+    act(()=>api("/rest/v1/profiles?id=eq."+id,{method:"PATCH",
+      headers:{Prefer:"return=representation"},body:JSON.stringify({aktif:!u.aktif})}),
+      "Status pengguna diperbarui."); },
+
+  /* --- mutasi stok --- */
+  mvTipeChange(){ const t=$("#mvTipe").value;
+    $("#mvLokLabel").textContent = t==="MASUK"?"Masuk ke lokasi": t==="KELUAR"?"Diambil dari lokasi":"Dikirim ke toko"; },
+  simpanMutasi(){
+    const tipe=$("#mvTipe").value, pid=$("#mvProd").value, qty=Math.max(1,+$("#mvQty").value||0),
+      lok=$("#mvLok").value, oleh=$("#mvOleh").value, ket=$("#mvKet").value;
+    if(!pid){ toast("Pilih barang dulu.","bad"); return; }
+    act(()=>rpc("move_stock",{p_tipe:tipe,p_product:pid,p_qty:qty,p_lok:lok,
+      p_oleh:tipe==="TRANSFER"?"HQ":oleh,p_ket:ket||""}),"Mutasi tersimpan. Stok diperbarui."); },
+
+  /* --- kelayakan usaha --- */
+  feasSet(k,v){ const f={...(DB.feasib||feasibDefaults())};
+    f[k]=Math.max(0,+v||0);
+    if(k==="horizon") f.horizon=Math.min(120,Math.max(6,Math.round(f.horizon)));
+    DB.feasib=f; render();
+    api("/rest/v1/app_settings",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+      body:JSON.stringify({id:"feasib",data:f})}).catch(e=>toast(e.message,"bad")); },
+  feasReset(){ const f=feasibDefaults(); DB.feasib=f; render();
+    api("/rest/v1/app_settings",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+      body:JSON.stringify({id:"feasib",data:f})}).then(()=>toast("Asumsi disetel ulang dari data penjualan.","good"))
+      .catch(e=>toast(e.message,"bad")); },
+
+  /* --- dokumen --- */
+  printDoc(kind,id){ const o=order(id); if(!o)return;
+    const html = kind==="so"?docSO(o) : kind==="label"?docLabel(o) : docInv(o);
+    const nama = kind==="so"?"Sales Order "+o.noSO : kind==="label"?"Label pengiriman "+(o.noAwb||o.noSO) : "Invoice "+o.invoice.no;
+    $("#printArea").innerHTML=html;
+    modal(nama,`<div class="previewbox">${html}</div>
+      <p class="hint" style="margin:12px 0 0">Pilih <b>Simpan sebagai PDF</b> pada dialog cetak untuk menghasilkan file.</p>`,
+      `<button class="btn gh" onclick="app.closeModal()">Tutup</button><button class="btn pri" onclick="window.print()">Cetak / simpan PDF</button>`); },
+  closeModal(){ $("#modalHost").innerHTML=""; $("#printArea").innerHTML=""; }
+};
+window.app=app;
+document.addEventListener("click",e=>{ if(UI.notifOpen&&!e.target.closest(".notif")&&!e.target.closest(".bell")){ UI.notifOpen=false; render(); } },true);
+</script>
+</body>
+</html>
