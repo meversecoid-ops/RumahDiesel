@@ -463,13 +463,13 @@ function seq(key,prefix){ const d=new Date(); const n=(DB.counters[key]=(DB.coun
 /* Isi bila ingin kredensial ditanam permanen. Kunci anon memang bersifat publik —
    keamanan sekarang ditegakkan oleh Row Level Security di database, bukan oleh
    menyembunyikan kunci ini. */
-const BAKED={url:"", key:""};
+const BAKED={url:"https://javlynoijaijnblhuitt.supabase.co/", key:"sb_publishable_ytVOLe-NA3TCJGRvpeD-NQ_ZeYy4MOK"};
 /* Site key Cloudflare Turnstile. Kosongkan bila captcha belum diaktifkan di Supabase. */
 const TURNSTILE_SITEKEY="";
 /* Penanda lingkungan. Kosongkan untuk sistem sungguhan.
    Isi "SANDBOX" (atau "UJI COBA") pada salinan yang dipakai berlatih dan mencoba perubahan —
    seluruh layar akan diberi pita belang agar tidak mungkin tertukar dengan data operasional. */
-const ENV_NAMA="";
+const ENV_NAMA="SANDBOX";
 
 const CFGKEY="dispatch:cfg", SESKEY="dispatch:sess";
 let CFG=null, SESS=null, SYNC="idle", LASTSYNC=null, POLLER=null, CAPTCHA=null;
